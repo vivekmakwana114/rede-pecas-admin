@@ -1,64 +1,66 @@
 import React, { useState, useEffect } from 'react';
 import * as XLSX from 'xlsx';
-import { 
-  Upload, FileText, CheckCircle, XCircle, LogOut, 
+import {
+  CheckCircle, LogOut,
   DollarSign, AlertCircle, Calendar, ShieldCheck, Database, FileSpreadsheet
 } from 'lucide-react';
 import { api } from './services/api.js';
 
-interface Pedido {
-  numero: string;
-  cliente: string;
-  peca: string;
-  referencia: string;
-  fornecedor: string;
-  preco: number;
-  criado_em: string;
-  hora: string;
-  tem_comprovativo: boolean;
-  metodo_pagamento?: string;
-  requer_comprovativo?: boolean;
+interface Order {
+  number: string;
+  customer: string;
+  part: string;
+  reference: string;
+  supplier: string;
+  price: number;
+  created_at: string;
+  time: string;
+  has_proof: boolean;
+  payment_method?: string;
+  requires_proof?: boolean;
 }
 
-interface PedidoAprovado {
-  numero: string;
-  cliente: string;
-  peca: string;
-  preco: number;
-  hora: string;
+interface ApprovedOrder {
+  number: string;
+  customer: string;
+  part: string;
+  price: number;
+  time: string;
 }
+
+const formatKwanza = (value: number) =>
+  new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(value);
 
 export default function App() {
   const [token, setToken] = useState<string | null>(localStorage.getItem('rp_admin_token'));
-  const [senha, setSenha] = useState('');
-  const [erroLogin, setErroLogin] = useState('');
-  
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+
   // Dashboard data states
-  const [pedidosPendentes, setPedidosPendentes] = useState<Pedido[]>([]);
-  const [pedidosAprovados, setPedidosAprovados] = useState<PedidoAprovado[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [pendingOrders, setPendingOrders] = useState<Order[]>([]);
+  const [approvedOrders, setApprovedOrders] = useState<ApprovedOrder[]>([]);
   const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'info' }>({ show: false, msg: '', type: 'info' });
 
   // Upload inventory states
-  const [fornecedorId, setFornecedorId] = useState('1');
+  const [supplierId, setSupplierId] = useState('1');
   const [uploadLoading, setUploadLoading] = useState(false);
 
   useEffect(() => {
     if (token) {
-      carregarPedidos();
-      const interval = setInterval(carregarPedidos, 15000); // refresh every 15s
+      loadOrders();
+      const interval = setInterval(loadOrders, 15000); // refresh every 15s
       return () => clearInterval(interval);
     }
   }, [token]);
 
-  const carregarPedidos = async () => {
+  const loadOrders = async () => {
     try {
-      const res = await api.get('/admin/pedidos');
-      setPedidosPendentes(res.data.pendentes || []);
-      setPedidosAprovados(res.data.aprovados || []);
+      const res = await api.get('/admin/orders');
+      setPendingOrders(res.data.pending || []);
+      setApprovedOrders(res.data.approved || []);
     } catch (err) {
       console.error("Error loading dashboard orders", err);
-      showToast("Erro ao carregar dados dos pedidos.", "error");
+      showToast("Failed to load order data.", "error");
     }
   };
 
@@ -69,44 +71,44 @@ export default function App() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErroLogin('');
+    setLoginError('');
     try {
-      const res = await api.post('/admin/login', { senha });
+      const res = await api.post('/admin/login', { password });
       if (res.data.token) {
         localStorage.setItem('rp_admin_token', res.data.token);
         setToken(res.data.token);
-        showToast("Login efectuado com sucesso!", "success");
+        showToast("Logged in successfully!", "success");
       }
     } catch (err: any) {
-      setErroLogin(err.response?.data?.erro || "Palavra-passe incorrecta.");
+      setLoginError(err.response?.data?.error || "Incorrect password.");
     }
   };
 
   const handleLogout = () => {
     localStorage.removeItem('rp_admin_token');
     setToken(null);
-    setSenha('');
+    setPassword('');
   };
 
-  const handleAprovar = async (numero: string) => {
-    showToast("A emitir factura oficial...", "info");
+  const handleApprove = async (number: string) => {
+    showToast("Issuing official invoice...", "info");
     try {
-      await api.post(`/admin/pedidos/${numero}/aprovar`);
-      showToast(`Pedido #${numero} aprovado com sucesso!`, "success");
-      carregarPedidos();
+      await api.post(`/admin/orders/${number}/approve`);
+      showToast(`Order #${number} approved successfully!`, "success");
+      loadOrders();
     } catch (err) {
-      showToast("Erro ao aprovar o pedido.", "error");
+      showToast("Failed to approve the order.", "error");
     }
   };
 
-  const handleRejeitar = async (numero: string) => {
-    if (!window.confirm(`Tem a certeza que deseja rejeitar o pedido #${numero}?`)) return;
+  const handleReject = async (number: string) => {
+    if (!window.confirm(`Are you sure you want to reject order #${number}?`)) return;
     try {
-      await api.post(`/admin/pedidos/${numero}/rejeitar`);
-      showToast(`Pedido #${numero} rejeitado. Cliente notificado.`, "success");
-      carregarPedidos();
+      await api.post(`/admin/orders/${number}/reject`);
+      showToast(`Order #${number} rejected. Customer notified.`, "success");
+      loadOrders();
     } catch (err) {
-      showToast("Erro ao rejeitar o pedido.", "error");
+      showToast("Failed to reject the order.", "error");
     }
   };
 
@@ -124,44 +126,44 @@ export default function App() {
         const workbook = XLSX.read(bstr, { type: 'binary' });
         const sheetName = workbook.SheetNames[0];
         const worksheet = workbook.Sheets[sheetName];
-        
+
         // Parse rows to JSON
         const rawRows = XLSX.utils.sheet_to_json<any>(worksheet);
 
-        // Map fields to API expectations (referencia, nome, preco, quantidade)
-        const artigos = rawRows.map(row => {
-          // Normalize spreadsheet column naming headers
-          const SKU = row.referencia || row.Referencia || row.SKU || row.CodArtigo || row.codigo || row['Código'];
-          const Descricao = row.nome || row.Nome || row.Descricao || row['Descrição'] || row.artigo || row.Artigo;
-          const Preco = parseFloat(row.preco || row.Preco || row['Preço'] || row.PVP || row.PVP1 || '0');
-          const Qtd = parseInt(row.quantidade || row.Quantidade || row.stock || row.Stock || row.StkActual || '0', 10);
+        // Map fields to API expectations (reference, name, price, quantity).
+        // Portuguese header aliases are kept — supplier spreadsheets use them.
+        const items = rawRows.map(row => {
+          const sku = row.reference || row.Reference || row.referencia || row.Referencia || row.SKU || row.CodArtigo || row.codigo || row['Código'];
+          const description = row.name || row.Name || row.nome || row.Nome || row.Descricao || row['Descrição'] || row.artigo || row.Artigo;
+          const price = parseFloat(row.price || row.Price || row.preco || row.Preco || row['Preço'] || row.PVP || row.PVP1 || '0');
+          const qty = parseInt(row.quantity || row.Quantity || row.quantidade || row.Quantidade || row.stock || row.Stock || row.StkActual || '0', 10);
 
           return {
-            referencia: String(SKU || '').trim(),
-            nome: String(Descricao || '').trim(),
-            preco: isNaN(Preco) ? 0 : Preco,
-            quantidade: isNaN(Qtd) ? 0 : Qtd
+            reference: String(sku || '').trim(),
+            name: String(description || '').trim(),
+            price: isNaN(price) ? 0 : price,
+            quantity: isNaN(qty) ? 0 : qty
           };
-        }).filter(a => a.referencia && a.nome);
+        }).filter(a => a.reference && a.name);
 
-        if (artigos.length === 0) {
-          showToast("Nenhum artigo válido encontrado na folha. Verifique os cabeçalhos.", "error");
+        if (items.length === 0) {
+          showToast("No valid items found in the sheet. Check the column headers.", "error");
           setUploadLoading(false);
           return;
         }
 
         // Upload to backend
         const res = await api.post('/admin/inventory/upload', {
-          fornecedorId: parseInt(fornecedorId, 10),
-          artigos
+          supplierId: parseInt(supplierId, 10),
+          items
         });
 
         showToast(
-          `Sincronização OK! Inseridos: ${res.data.inseridos}, Actualizados: ${res.data.actualizados}, Desactivados: ${res.data.desactivados}`,
+          `Sync OK! Inserted: ${res.data.inserted}, Updated: ${res.data.updated}, Deactivated: ${res.data.deactivated}`,
           "success"
         );
       } catch (err: any) {
-        showToast("Erro ao processar ficheiro de stock.", "error");
+        showToast("Failed to process the stock file.", "error");
       } finally {
         setUploadLoading(false);
         // Clear input value so same file can be uploaded again
@@ -173,7 +175,7 @@ export default function App() {
   };
 
   // Stats calculators
-  const totalFaturadoHoje = pedidosAprovados.reduce((sum, p) => sum + (p.preco || 0), 0);
+  const totalBilledToday = approvedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
 
   // Authentication interface
   if (!token) {
@@ -185,34 +187,34 @@ export default function App() {
               <ShieldCheck className="h-8 w-8" />
             </div>
             <h1 className="text-2xl font-bold text-slate-800">Rede Peças</h1>
-            <p className="text-sm text-slate-500 mt-1">Painel Administrativo de Encomendas</p>
+            <p className="text-sm text-slate-500 mt-1">Order Administration Panel</p>
           </div>
 
           <form onSubmit={handleLogin} className="space-y-6">
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">Palavra-passe de Acesso</label>
-              <input 
-                type="password" 
-                value={senha}
-                onChange={(e) => setSenha(e.target.value)}
-                placeholder="Insira a password do administrador"
+              <label className="block text-sm font-semibold text-slate-700 mb-2">Access Password</label>
+              <input
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter the administrator password"
                 className="w-full px-4 py-3 border border-slate-200 rounded-lg text-slate-800 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:border-transparent transition-all"
                 required
               />
             </div>
 
-            {erroLogin && (
+            {loginError && (
               <div className="flex items-center gap-2 text-red-600 text-xs bg-red-50 p-3 rounded-lg">
                 <AlertCircle className="h-4 w-4 shrink-0" />
-                <span>{erroLogin}</span>
+                <span>{loginError}</span>
               </div>
             )}
 
-            <button 
+            <button
               type="submit"
               className="w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-lg transition-all"
             >
-              Entrar no Painel
+              Log In to Panel
             </button>
           </form>
         </div>
@@ -227,19 +229,19 @@ export default function App() {
       <header className="bg-slate-900 text-white py-4 px-6 shadow-md flex justify-between items-center">
         <div className="flex items-center gap-3">
           <Database className="h-6 w-6 text-sky-400" />
-          <h1 className="text-lg font-bold tracking-tight">Rede Peças — Gestão de Pedidos</h1>
+          <h1 className="text-lg font-bold tracking-tight">Rede Peças — Order Management</h1>
         </div>
         <div className="flex items-center gap-4">
           <span className="text-xs text-slate-400 font-medium hidden sm:inline flex items-center gap-1">
             <Calendar className="h-3 w-3" />
-            {new Date().toLocaleDateString('pt-AO')}
+            {new Date().toLocaleDateString('en-GB')}
           </span>
-          <button 
+          <button
             onClick={handleLogout}
             className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-lg transition-all"
           >
             <LogOut className="h-4 w-4" />
-            <span>Sair</span>
+            <span>Log Out</span>
           </button>
         </div>
       </header>
@@ -256,28 +258,28 @@ export default function App() {
       )}
 
       <main className="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        
+
         {/* Left Side: Stats and excel Uploader */}
         <div className="lg:col-span-1 space-y-8">
-          
+
           {/* Stats Box */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200/80">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Métricas Rápidas</h2>
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Quick Metrics</h2>
             <div className="space-y-4">
               <div className="p-4 bg-slate-50 rounded-lg flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500">Pedidos Pendentes</p>
-                  <p className="text-2xl font-bold text-slate-800 mt-1">{pedidosPendentes.length}</p>
+                  <p className="text-xs font-semibold text-slate-500">Pending Orders</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">{pendingOrders.length}</p>
                 </div>
                 <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
                   <AlertCircle className="h-5 w-5" />
                 </div>
               </div>
-              
+
               <div className="p-4 bg-slate-50 rounded-lg flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500">Aprovados Hoje</p>
-                  <p className="text-2xl font-bold text-slate-800 mt-1">{pedidosAprovados.length}</p>
+                  <p className="text-xs font-semibold text-slate-500">Approved Today</p>
+                  <p className="text-2xl font-bold text-slate-800 mt-1">{approvedOrders.length}</p>
                 </div>
                 <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
                   <CheckCircle className="h-5 w-5" />
@@ -286,9 +288,9 @@ export default function App() {
 
               <div className="p-4 bg-slate-50 rounded-lg flex items-center justify-between">
                 <div>
-                  <p className="text-xs font-semibold text-slate-500">Faturação Diária</p>
+                  <p className="text-xs font-semibold text-slate-500">Daily Revenue</p>
                   <p className="text-xl font-bold text-emerald-700 mt-1">
-                    {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(totalFaturadoHoje)}
+                    {formatKwanza(totalBilledToday)}
                   </p>
                 </div>
                 <div className="p-3 bg-sky-50 text-sky-600 rounded-lg">
@@ -300,13 +302,13 @@ export default function App() {
 
           {/* Excel Import Box */}
           <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200/80">
-            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Carregar Inventário</h2>
+            <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Upload Inventory</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-xs font-bold text-slate-600 mb-2">Seleccionar Fornecedor</label>
-                <select 
-                  value={fornecedorId}
-                  onChange={(e) => setFornecedorId(e.target.value)}
+                <label className="block text-xs font-bold text-slate-600 mb-2">Select Supplier</label>
+                <select
+                  value={supplierId}
+                  onChange={(e) => setSupplierId(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500"
                 >
                   <option value="1">Auto Peças Luanda</option>
@@ -316,8 +318,8 @@ export default function App() {
               </div>
 
               <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 hover:bg-slate-50/50 transition-all text-center">
-                <input 
-                  type="file" 
+                <input
+                  type="file"
                   accept=".csv,.xlsx,.xls"
                   onChange={handleFileUpload}
                   id="excelFileInput"
@@ -328,9 +330,9 @@ export default function App() {
                   <div className="flex flex-col items-center">
                     <FileSpreadsheet className={`h-10 w-10 text-slate-400 mb-3 ${uploadLoading ? 'animate-bounce text-sky-500' : ''}`} />
                     <p className="text-sm font-bold text-slate-700">
-                      {uploadLoading ? 'A processar ficheiro...' : 'Importar CSV ou Excel'}
+                      {uploadLoading ? 'Processing file...' : 'Import CSV or Excel'}
                     </p>
-                    <p className="text-xs text-slate-400 mt-1">Carregar ficheiro com SKU, Artigo, Stock e Preço</p>
+                    <p className="text-xs text-slate-400 mt-1">Upload a file with SKU, Item, Stock and Price columns</p>
                   </div>
                 </label>
               </div>
@@ -341,70 +343,70 @@ export default function App() {
 
         {/* Right Side: Orders tables lists */}
         <div className="lg:col-span-2 space-y-8">
-          
+
           {/* Pending Orders List */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="px-6 py-4 bg-slate-900/5 border-b border-slate-200/80">
-              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">⏳ Pedidos Pendentes de Aprovação</h2>
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">⏳ Orders Pending Approval</h2>
             </div>
-            
+
             <div className="divide-y divide-slate-100">
-              {pedidosPendentes.length === 0 ? (
+              {pendingOrders.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-sm">
-                  Não existem pedidos pendentes para aprovação. ✅
+                  No orders pending approval. ✅
                 </div>
               ) : (
-                pedidosPendentes.map((pedido) => (
-                  <div key={pedido.numero} className="p-6 hover:bg-slate-50/30 transition-all">
+                pendingOrders.map((order) => (
+                  <div key={order.number} className="p-6 hover:bg-slate-50/30 transition-all">
                     <div className="flex justify-between items-start mb-4">
                       <div>
-                        <span className="text-sm font-bold text-slate-800 mr-2">{pedido.numero}</span>
-                        <span className="text-xs font-semibold text-slate-500">às {pedido.hora}</span>
+                        <span className="text-sm font-bold text-slate-800 mr-2">{order.number}</span>
+                        <span className="text-xs font-semibold text-slate-500">at {order.time}</span>
                       </div>
                       <span className={`px-2.5 py-1 rounded-full text-2xs font-bold ${
-                        pedido.tem_comprovativo ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
+                        order.has_proof ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' : 'bg-amber-50 text-amber-700 border border-amber-200'
                       }`}>
-                        {pedido.tem_comprovativo ? 'Comprovativo Recebido' : 'Aguardando Pagamento'}
+                        {order.has_proof ? 'Proof Received' : 'Awaiting Payment'}
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-4 text-xs mb-4">
                       <div>
-                        <p className="text-slate-400 font-medium">Peça</p>
-                        <p className="font-bold text-slate-800 mt-0.5">{pedido.peca}</p>
+                        <p className="text-slate-400 font-medium">Part</p>
+                        <p className="font-bold text-slate-800 mt-0.5">{order.part}</p>
                       </div>
                       <div>
-                        <p className="text-slate-400 font-medium">Referência SKU</p>
-                        <p className="font-bold text-slate-800 mt-0.5">{pedido.referencia}</p>
+                        <p className="text-slate-400 font-medium">SKU Reference</p>
+                        <p className="font-bold text-slate-800 mt-0.5">{order.reference}</p>
                       </div>
                       <div>
-                        <p className="text-slate-400 font-medium">Fornecedor</p>
-                        <p className="font-bold text-slate-800 mt-0.5">{pedido.fornecedor}</p>
+                        <p className="text-slate-400 font-medium">Supplier</p>
+                        <p className="font-bold text-slate-800 mt-0.5">{order.supplier}</p>
                       </div>
                       <div>
-                        <p className="text-slate-400 font-medium">Preço</p>
+                        <p className="text-slate-400 font-medium">Price</p>
                         <p className="font-bold text-emerald-700 mt-0.5">
-                          {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(pedido.preco)}
+                          {formatKwanza(order.price)}
                         </p>
                       </div>
                       <div className="col-span-2">
-                        <p className="text-slate-400 font-medium">Cliente (WhatsApp)</p>
-                        <p className="font-bold text-slate-800 mt-0.5">{pedido.cliente}</p>
+                        <p className="text-slate-400 font-medium">Customer (WhatsApp)</p>
+                        <p className="font-bold text-slate-800 mt-0.5">{order.customer}</p>
                       </div>
                     </div>
 
                     <div className="flex gap-3 mt-4">
-                      <button 
-                        onClick={() => handleRejeitar(pedido.numero)}
+                      <button
+                        onClick={() => handleReject(order.number)}
                         className="flex-1 py-2 px-4 border border-red-200 hover:bg-red-50 text-red-600 text-xs font-bold rounded-lg transition-all"
                       >
-                        ❌ Rejeitar Pedido
+                        ❌ Reject Order
                       </button>
-                      <button 
-                        onClick={() => handleAprovar(pedido.numero)}
+                      <button
+                        onClick={() => handleApprove(order.number)}
                         className="flex-1 py-2 px-4 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-lg transition-all shadow-sm"
                       >
-                        ✅ Confirmar Pagamento e Faturar
+                        ✅ Confirm Payment & Invoice
                       </button>
                     </div>
                   </div>
@@ -416,26 +418,26 @@ export default function App() {
           {/* Approved Orders List */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
             <div className="px-6 py-4 bg-slate-900/5 border-b border-slate-200/80">
-              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">✅ Aprovados Hoje</h2>
+              <h2 className="text-sm font-bold text-slate-800 uppercase tracking-wider">✅ Approved Today</h2>
             </div>
-            
+
             <div className="divide-y divide-slate-100 max-h-[400px] overflow-y-auto">
-              {pedidosAprovados.length === 0 ? (
+              {approvedOrders.length === 0 ? (
                 <div className="p-8 text-center text-slate-400 text-sm">
-                  Nenhum pedido aprovado hoje ainda.
+                  No orders approved yet today.
                 </div>
               ) : (
-                pedidosAprovados.map((pedido) => (
-                  <div key={pedido.numero} className="p-4 flex items-center justify-between hover:bg-slate-50/20">
+                approvedOrders.map((order) => (
+                  <div key={order.number} className="p-4 flex items-center justify-between hover:bg-slate-50/20">
                     <div>
-                      <p className="text-sm font-bold text-slate-800">{pedido.numero}</p>
-                      <p className="text-xs text-slate-400 font-medium mt-0.5">{pedido.peca} · {pedido.cliente}</p>
+                      <p className="text-sm font-bold text-slate-800">{order.number}</p>
+                      <p className="text-xs text-slate-400 font-medium mt-0.5">{order.part} · {order.customer}</p>
                     </div>
                     <div className="text-right">
                       <p className="text-sm font-bold text-slate-800">
-                        {new Intl.NumberFormat('pt-AO', { style: 'currency', currency: 'AOA', maximumFractionDigits: 0 }).format(pedido.preco)}
+                        {formatKwanza(order.price)}
                       </p>
-                      <p className="text-2xs font-semibold text-slate-400 mt-0.5">Aprovado às {pedido.hora}</p>
+                      <p className="text-2xs font-semibold text-slate-400 mt-0.5">Approved at {order.time}</p>
                     </div>
                   </div>
                 ))
