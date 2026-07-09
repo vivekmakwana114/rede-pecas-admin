@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { AlertCircle, ArrowLeft, MessageCircle } from 'lucide-react';
 import axios from 'axios';
 import { forgotPassword } from '@/store/auth/authService';
-import { BrandMark } from '@/components/auth/brand-mark';
+import { BrandMark } from '@/components/BrandMark';
 
 export function ForgotPasswordForm() {
   const router = useRouter();

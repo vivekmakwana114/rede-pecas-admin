@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { AlertCircle } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { loginUser } from '@/store/auth/authSlice';
-import { PasswordInput } from '@/components/auth/password-input';
-import { BrandMark } from '@/components/auth/brand-mark';
+import { PasswordInput } from '@/components/auth/PasswordInput';
+import { BrandMark } from '@/components/BrandMark';
 
 export function LoginForm() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export function LoginForm() {
 
   useEffect(() => {
     if (tokens?.access?.token) {
-      router.replace('/dashboard');
+      router.replace('/orders');
     }
   }, [tokens, router]);
 
@@ -33,7 +33,7 @@ export function LoginForm() {
 
     try {
       await dispatch(loginUser({ email, password, rememberMe })).unwrap();
-      router.push('/dashboard');
+      router.push('/orders');
     } catch (err) {
       setLoginError(typeof err === 'string' ? err : 'Incorrect email or password.');
     } finally {

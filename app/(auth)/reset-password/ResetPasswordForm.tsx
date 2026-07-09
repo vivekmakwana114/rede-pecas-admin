@@ -6,8 +6,8 @@ import Link from 'next/link';
 import { AlertCircle, ArrowLeft, Check, CheckCircle2, KeyRound } from 'lucide-react';
 import axios from 'axios';
 import { resetPassword } from '@/store/auth/authService';
-import { PasswordInput } from '@/components/auth/password-input';
-import { BrandMark } from '@/components/auth/brand-mark';
+import { PasswordInput } from '@/components/auth/PasswordInput';
+import { BrandMark } from '@/components/BrandMark';
 
 const HAS_SPECIAL_CHAR = /[^A-Za-z0-9]/;
 

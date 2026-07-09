@@ -2,16 +2,16 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Calendar, Database, LogOut } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/auth/authSlice';
-import { OrderCard } from './order-card';
-import { StatsPanel } from './stats-panel';
-import { UploadPanel } from './upload-panel';
+import { Toast } from '@/components/dashboard/Toast';
+import { useToast } from '@/components/dashboard/useToast';
+import { OrderCard } from './OrderCard';
+import { StatsPanel } from './StatsPanel';
 import type { ApprovedOrder, Order } from './types';
 
-export function DashboardClient({
+export function OrdersClient({
   initialPending,
   initialApproved,
 }: {
@@ -23,16 +23,7 @@ export function DashboardClient({
   const accessToken = useAppSelector((state) => state.auth.tokens?.access?.token);
   const [pendingOrders, setPendingOrders] = useState<Order[]>(initialPending);
   const [approvedOrders, setApprovedOrders] = useState<ApprovedOrder[]>(initialApproved);
-  const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'info' }>({
-    show: false,
-    msg: '',
-    type: 'info',
-  });
-
-  const showToast = (msg: string, type: 'success' | 'error' | 'info' = 'info') => {
-    setToast({ show: true, msg, type });
-    setTimeout(() => setToast({ show: false, msg: '', type: 'info' }), 4000);
-  };
+  const { toast, showToast } = useToast();
 
   const loadOrders = async (token: string) => {
     try {
@@ -52,10 +43,7 @@ export function DashboardClient({
   };
 
   useEffect(() => {
-    if (!accessToken) {
-      router.replace('/login');
-      return;
-    }
+    if (!accessToken) return;
 
     // loadOrders sets state only after its internal `await fetch` resolves, not
     // synchronously during this effect — safe despite the lint rule's static check.
@@ -65,11 +53,6 @@ export function DashboardClient({
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [accessToken]);
-
-  const handleLogout = () => {
-    dispatch(logout());
-    router.push('/login');
-  };
 
   const handleApprove = async (number: string) => {
     if (!accessToken) return;
@@ -106,55 +89,18 @@ export function DashboardClient({
   const totalBilledToday = approvedOrders.reduce((sum, o) => sum + (o.price || 0), 0);
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-12">
-      {/* Header bar */}
-      <header className="bg-slate-900 text-white py-4 px-6 shadow-md flex justify-between items-center">
-        <div className="flex items-center gap-3">
-          <Database className="h-6 w-6 text-sky-400" />
-          <h1 className="text-lg font-bold tracking-tight">Rede Peças — Order Management</h1>
-        </div>
-        <div className="flex items-center gap-4">
-          <span className="text-xs text-slate-400 font-medium hidden sm:inline flex items-center gap-1">
-            <Calendar className="h-3 w-3" />
-            {new Date().toLocaleDateString('en-GB')}
-          </span>
-          <button
-            onClick={handleLogout}
-            className="flex items-center gap-2 px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 text-sm font-semibold rounded-lg transition-all"
-          >
-            <LogOut className="h-4 w-4" />
-            <span>Log Out</span>
-          </button>
-        </div>
-      </header>
+    <>
+      <Toast toast={toast} />
 
-      {/* Toast Notification banner */}
-      {toast.show && (
-        <div
-          className={`fixed bottom-6 right-6 z-50 px-6 py-4 rounded-xl shadow-lg border text-sm font-semibold text-white flex items-center gap-3 transition-all ${
-            toast.type === 'success'
-              ? 'bg-emerald-600 border-emerald-500'
-              : toast.type === 'error'
-                ? 'bg-red-600 border-red-500'
-                : 'bg-slate-800 border-slate-700'
-          }`}
-        >
-          <span>{toast.msg}</span>
-        </div>
-      )}
-
-      <main className="max-w-7xl mx-auto px-4 mt-8 grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Left Side: Stats and Excel uploader */}
-        <div className="lg:col-span-1 space-y-8">
+      <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
+        <div className="lg:col-span-1">
           <StatsPanel
             pendingCount={pendingOrders.length}
             approvedCount={approvedOrders.length}
             totalBilledToday={totalBilledToday}
           />
-          <UploadPanel showToast={showToast} accessToken={accessToken} />
         </div>
 
-        {/* Right Side: Orders tables lists */}
         <div className="lg:col-span-2 space-y-8">
           {/* Pending Orders List */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200/80 overflow-hidden">
@@ -201,7 +147,7 @@ export function DashboardClient({
             </div>
           </div>
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
