@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
-import { getSessionToken } from '@/lib/session';
 
-export default async function RootPage() {
-  const token = await getSessionToken();
-  redirect(token ? '/dashboard' : '/login');
+// Auth now lives client-side (Redux + localStorage/sessionStorage), so this
+// server component can't tell who's logged in — it always points at
+// /dashboard, and DashboardClient bounces unauthenticated visitors to /login.
+export default function RootPage() {
+  redirect('/dashboard');
 }

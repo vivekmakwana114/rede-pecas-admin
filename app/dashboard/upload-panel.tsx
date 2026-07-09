@@ -10,7 +10,13 @@ const SUPPLIERS = [
   { id: '3', name: 'Import Car Parts' },
 ];
 
-export function UploadPanel({ showToast }: { showToast: (msg: string, type?: 'success' | 'error' | 'info') => void }) {
+export function UploadPanel({
+  showToast,
+  accessToken,
+}: {
+  showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  accessToken?: string;
+}) {
   const [supplierId, setSupplierId] = useState('1');
   const [uploadLoading, setUploadLoading] = useState(false);
 
@@ -63,10 +69,16 @@ export function UploadPanel({ showToast }: { showToast: (msg: string, type?: 'su
           return;
         }
 
-        // Upload via our own API route, which forwards to the backend with the session token
+        if (!accessToken) {
+          showToast('Your session has expired. Please log in again.', 'error');
+          setUploadLoading(false);
+          return;
+        }
+
+        // Upload via our own API route, which forwards to the backend with the access token
         const res = await fetch('/api/inventory/upload', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${accessToken}` },
           body: JSON.stringify({ supplierId: parseInt(supplierId, 10), items }),
         });
         const data = await res.json();

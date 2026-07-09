@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Calendar, Database, LogOut } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { logout } from '@/store/auth/authSlice';
 import { OrderCard } from './order-card';
 import { StatsPanel } from './stats-panel';
 import { UploadPanel } from './upload-panel';
@@ -17,6 +19,8 @@ export function DashboardClient({
   initialApproved: ApprovedOrder[];
 }) {
   const router = useRouter();
+  const dispatch = useAppDispatch();
+  const accessToken = useAppSelector((state) => state.auth.tokens?.access?.token);
   const [pendingOrders, setPendingOrders] = useState<Order[]>(initialPending);
   const [approvedOrders, setApprovedOrders] = useState<ApprovedOrder[]>(initialApproved);
   const [toast, setToast] = useState<{ show: boolean; msg: string; type: 'success' | 'error' | 'info' }>({
@@ -30,10 +34,11 @@ export function DashboardClient({
     setTimeout(() => setToast({ show: false, msg: '', type: 'info' }), 4000);
   };
 
-  const loadOrders = async () => {
+  const loadOrders = async (token: string) => {
     try {
-      const res = await fetch('/api/orders');
+      const res = await fetch('/api/orders', { headers: { Authorization: `Bearer ${token}` } });
       if (res.status === 401) {
+        dispatch(logout());
         router.push('/login');
         return;
       }
@@ -47,36 +52,52 @@ export function DashboardClient({
   };
 
   useEffect(() => {
-    const interval = setInterval(loadOrders, 15000); // refresh every 15s
+    if (!accessToken) {
+      router.replace('/login');
+      return;
+    }
+
+    // loadOrders sets state only after its internal `await fetch` resolves, not
+    // synchronously during this effect — safe despite the lint rule's static check.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadOrders(accessToken);
+    const interval = setInterval(() => loadOrders(accessToken), 15000); // refresh every 15s
     return () => clearInterval(interval);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [accessToken]);
 
-  const handleLogout = async () => {
-    await fetch('/api/auth/logout', { method: 'POST' });
+  const handleLogout = () => {
+    dispatch(logout());
     router.push('/login');
-    router.refresh();
   };
 
   const handleApprove = async (number: string) => {
+    if (!accessToken) return;
     showToast('Issuing official invoice...', 'info');
     try {
-      const res = await fetch(`/api/orders/${encodeURIComponent(number)}/approve`, { method: 'POST' });
+      const res = await fetch(`/api/orders/${encodeURIComponent(number)}/approve`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (!res.ok) throw new Error('Failed to approve');
       showToast(`Order #${number} approved successfully!`, 'success');
-      loadOrders();
+      loadOrders(accessToken);
     } catch {
       showToast('Failed to approve the order.', 'error');
     }
   };
 
   const handleReject = async (number: string) => {
+    if (!accessToken) return;
     if (!window.confirm(`Are you sure you want to reject order #${number}?`)) return;
     try {
-      const res = await fetch(`/api/orders/${encodeURIComponent(number)}/reject`, { method: 'POST' });
+      const res = await fetch(`/api/orders/${encodeURIComponent(number)}/reject`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
       if (!res.ok) throw new Error('Failed to reject');
       showToast(`Order #${number} rejected. Customer notified.`, 'success');
-      loadOrders();
+      loadOrders(accessToken);
     } catch {
       showToast('Failed to reject the order.', 'error');
     }
@@ -130,7 +151,7 @@ export function DashboardClient({
             approvedCount={approvedOrders.length}
             totalBilledToday={totalBilledToday}
           />
-          <UploadPanel showToast={showToast} />
+          <UploadPanel showToast={showToast} accessToken={accessToken} />
         </div>
 
         {/* Right Side: Orders tables lists */}
