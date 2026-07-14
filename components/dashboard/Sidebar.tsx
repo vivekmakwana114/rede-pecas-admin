@@ -2,10 +2,11 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Boxes, ShoppingCart, Users } from 'lucide-react';
+import { Boxes, LayoutDashboard, ShoppingCart, Users } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
 const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/orders', label: 'Orders', icon: ShoppingCart },
   { href: '/inventory', label: 'Inventory', icon: Boxes },
   { href: '/customers', label: 'Customers', icon: Users },
@@ -15,7 +16,7 @@ export function Sidebar() {
   const pathname = usePathname();
 
   return (
-    <aside className="hidden w-60 shrink-0 border-r border-slate-200 bg-white lg:flex lg:flex-col">
+    <aside className="hidden w-60 shrink-0 overflow-y-auto border-r border-slate-200 bg-white lg:flex lg:flex-col">
       <nav className="flex-1 space-y-1 px-3 py-6">
         {NAV_ITEMS.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);

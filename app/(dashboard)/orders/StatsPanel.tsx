@@ -1,49 +1,60 @@
-import { AlertCircle, CheckCircle, DollarSign } from 'lucide-react';
-import { formatKwanza } from '@/lib/format';
+import type { LucideIcon } from 'lucide-react';
+import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+
+interface StatCard {
+  label: string;
+  value: string;
+  icon: LucideIcon;
+  iconClassName: string;
+  valueClassName?: string;
+}
 
 export function StatsPanel({
   pendingCount,
   approvedCount,
-  totalBilledToday,
+  rejectedCount,
 }: {
   pendingCount: number;
   approvedCount: number;
-  totalBilledToday: number;
+  rejectedCount: number;
 }) {
+  const cards: StatCard[] = [
+    {
+      label: 'Pending',
+      value: String(pendingCount),
+      icon: AlertCircle,
+      iconClassName: 'bg-amber-50 text-amber-600',
+    },
+    {
+      label: 'Approved',
+      value: String(approvedCount),
+      icon: CheckCircle,
+      iconClassName: 'bg-emerald-50 text-emerald-600',
+    },
+    {
+      label: 'Rejected',
+      value: String(rejectedCount),
+      icon: XCircle,
+      iconClassName: 'bg-red-50 text-red-600',
+    },
+  ];
+
   return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-slate-200/80">
-      <h2 className="text-sm font-bold text-slate-400 uppercase tracking-wider mb-4">Quick Metrics</h2>
-      <div className="space-y-4">
-        <div className="p-4 bg-slate-50 rounded-lg flex items-center justify-between">
+    <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+      {cards.map(({ label, value, icon: Icon, iconClassName, valueClassName }) => (
+        <div
+          key={label}
+          className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm"
+        >
           <div>
-            <p className="text-xs font-semibold text-slate-500">Pending Orders</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{pendingCount}</p>
+            <p className="text-xs font-semibold text-slate-500">{label}</p>
+            <p className={`mt-1 font-bold text-slate-800 ${valueClassName ?? 'text-2xl'}`}>{value}</p>
           </div>
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-lg">
-            <AlertCircle className="h-5 w-5" />
+          <div className={`rounded-lg p-3 ${iconClassName}`}>
+            <Icon className="h-5 w-5" />
           </div>
         </div>
-
-        <div className="p-4 bg-slate-50 rounded-lg flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500">Approved Today</p>
-            <p className="text-2xl font-bold text-slate-800 mt-1">{approvedCount}</p>
-          </div>
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-lg">
-            <CheckCircle className="h-5 w-5" />
-          </div>
-        </div>
-
-        <div className="p-4 bg-slate-50 rounded-lg flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold text-slate-500">Daily Revenue</p>
-            <p className="text-xl font-bold text-emerald-700 mt-1">{formatKwanza(totalBilledToday)}</p>
-          </div>
-          <div className="p-3 bg-sky-50 text-sky-600 rounded-lg">
-            <DollarSign className="h-5 w-5" />
-          </div>
-        </div>
-      </div>
+      ))}
     </div>
   );
 }

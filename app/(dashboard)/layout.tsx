@@ -16,6 +16,9 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
+    // One-time client-mount signal for the SSR-hydration guard above — there's
+    // no external system to synchronize with here, so the setState is the point.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setMounted(true);
   }, []);
 
