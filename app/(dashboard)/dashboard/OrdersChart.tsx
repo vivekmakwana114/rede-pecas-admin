@@ -1,0 +1,59 @@
+'use client';
+
+import { Loader2 } from 'lucide-react';
+import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
+import type { AnalyticsPeriod, AnalyticsPoint } from '@/store/analytics/analyticsSlice';
+
+const SUBTITLE: Record<AnalyticsPeriod, string> = {
+  daily: 'By hour today, by status',
+  monthly: 'By day this month, by status',
+  yearly: 'By month this year, by status',
+};
+
+const STATUS_BARS: { key: 'approved' | 'pending' | 'stockConfirmation' | 'rejected'; label: string; color: string }[] = [
+  { key: 'approved', label: 'Approved', color: '#059669' },
+  { key: 'pending', label: 'Pending', color: '#d97706' },
+  { key: 'stockConfirmation', label: 'Stock Confirmation', color: '#0284c7' },
+  { key: 'rejected', label: 'Rejected', color: '#dc2626' },
+];
+
+export function OrdersChart({
+  data,
+  period,
+  loading,
+}: {
+  data: AnalyticsPoint[];
+  period: AnalyticsPeriod;
+  loading: boolean;
+}) {
+  return (
+    <div className="rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm">
+      <h3 className="text-sm font-bold text-slate-900">Orders</h3>
+      <p className="mt-0.5 text-xs text-slate-500">{SUBTITLE[period]}</p>
+
+      <div className="mt-4 h-64">
+        {loading ? (
+          <div className="flex h-full items-center justify-center gap-2 text-xs text-slate-400">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Loading orders…
+          </div>
+        ) : data.length === 0 ? (
+          <div className="flex h-full items-center justify-center text-xs text-slate-400">No orders in this period.</div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={data} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e2e8f0" />
+              <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} axisLine={{ stroke: '#e2e8f0' }} tickLine={false} />
+              <YAxis allowDecimals={false} tick={{ fontSize: 11, fill: '#64748b' }} axisLine={false} tickLine={false} width={28} />
+              <Tooltip contentStyle={{ borderRadius: 8, borderColor: '#e2e8f0', fontSize: 12 }} />
+              <Legend wrapperStyle={{ fontSize: 11 }} />
+              {STATUS_BARS.map(({ key, label, color }) => (
+                <Bar key={key} dataKey={key} name={label} stackId="orders" fill={color} />
+              ))}
+            </BarChart>
+          </ResponsiveContainer>
+        )}
+      </div>
+    </div>
+  );
+}

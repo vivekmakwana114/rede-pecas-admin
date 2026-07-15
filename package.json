@@ -1,7 +1,7 @@
 {
   "name": "rede-pecas-admin",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3000",
@@ -17,6 +17,7 @@
     "react": "^19.2.6",
     "react-dom": "^19.2.6",
     "react-redux": "^9.3.0",
+    "recharts": "^3.9.2",
     "server-only": "^0.0.1",
     "xlsx": "^0.18.5"
   },
