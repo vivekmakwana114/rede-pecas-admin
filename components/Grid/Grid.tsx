@@ -81,7 +81,7 @@ export function Grid<T>({
                 <th
                   key={column.key}
                   scope="col"
-                  className={`px-4 py-3 text-2xs font-bold uppercase tracking-wider text-slate-900 ${
+                  className={`px-4 py-3 text-2xs font-bold tracking-wider text-slate-900 ${
                     column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
                   } ${column.headerClassName ?? ''}`}
                 >

@@ -176,7 +176,7 @@ export default function OrdersPage() {
     },
     {
       key: 'stockConfirmation',
-      header: 'Stock Confirmation',
+      header: 'Stock',
       align: 'center',
       cell: (row) => {
         if (row.status !== 'stockConfirmation') return <span className="text-2xs text-slate-300">—</span>;
@@ -204,7 +204,7 @@ export default function OrdersPage() {
     },
     {
       key: 'paymentProof',
-      header: 'Payment Proof',
+      header: 'Invoice',
       align: 'center',
       cell: (row) => {
         if (!row.hasProof) return <span className="text-2xs text-slate-300">—</span>;
