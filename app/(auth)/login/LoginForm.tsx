@@ -85,7 +85,7 @@ export function LoginForm() {
               onChange={(e) => setRememberMe(e.target.checked)}
               className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
             />
-            Remember for 30 days
+            Remember Me
           </label>
           <Link href="/forgot-password" className="text-sm font-semibold text-primary hover:text-primary/80">
             Forgot password

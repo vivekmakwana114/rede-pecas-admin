@@ -1,7 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
 import * as inventoryService from './inventoryService';
-import type { UploadItemPayload } from './inventoryService';
 
 export interface Product {
   reference: string;
@@ -9,6 +8,9 @@ export interface Product {
   price: number;
   quantity: number;
   supplier?: string;
+  service_offered?: boolean;
+  service_name?: string | null;
+  service_price?: number | null;
 }
 
 export interface UploadResult {
@@ -42,9 +44,6 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-// NOTE: GET /admin/products is not yet confirmed against the real backend —
-// this mirrors the { data: [...] } envelope GET /admin/orders uses. Adjust
-// the `res.data.data` unwrap once the real response shape is shared.
 export const fetchProducts = createAsyncThunk('inventory/fetchProducts', async (_: void, { rejectWithValue }) => {
   try {
     const res = await inventoryService.getProducts();
@@ -56,10 +55,10 @@ export const fetchProducts = createAsyncThunk('inventory/fetchProducts', async (
 
 export const importInventory = createAsyncThunk(
   'inventory/importInventory',
-  async (payload: { items: UploadItemPayload[] }, { rejectWithValue }) => {
+  async (file: File, { rejectWithValue }) => {
     try {
-      const res = await inventoryService.uploadInventory(payload);
-      return res.data as UploadResult;
+      const res = await inventoryService.uploadInventoryFile(file);
+      return res.data.data as UploadResult;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, 'Failed to import the stock file.'));
     }

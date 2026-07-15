@@ -1,6 +1,7 @@
 import type { UploadItemPayload } from '@/store/inventory/inventoryService';
 
 type RequiredField = 'reference' | 'name' | 'price' | 'quantity' | 'supplier';
+type OptionalField = 'service' | 'serviceName' | 'servicePrice';
 
 // Supplier spreadsheets vary — Portuguese/English header aliases are kept.
 const COLUMN_ALIASES: Record<RequiredField, string[]> = {
@@ -11,6 +12,14 @@ const COLUMN_ALIASES: Record<RequiredField, string[]> = {
   supplier: ['supplier', 'Supplier', 'fornecedor', 'Fornecedor'],
 };
 
+// Not required columns — a file with no service offering at all simply won't
+// have these headers, so they're never checked against missingColumns.
+const OPTIONAL_COLUMN_ALIASES: Record<OptionalField, string[]> = {
+  service: ['service', 'Service', 'servico', 'Servico', 'Serviço'],
+  serviceName: ['service_name', 'Service Name', 'nome_servico', 'Nome do Serviço', 'nome_serviço'],
+  servicePrice: ['service_price', 'Service Price', 'preco_servico', 'Preço do Serviço', 'preco_serviço'],
+};
+
 const FIELD_LABELS: Record<RequiredField, string> = {
   reference: 'Reference / SKU',
   name: 'Name / Description',
@@ -18,6 +27,8 @@ const FIELD_LABELS: Record<RequiredField, string> = {
   quantity: 'Quantity / Stock',
   supplier: 'Supplier',
 };
+
+const YES_VALUES = new Set(['yes', 'sim', 'true', '1']);
 
 export interface ParseResult {
   items: UploadItemPayload[];
@@ -27,8 +38,8 @@ export interface ParseResult {
   missingColumns: string[];
 }
 
-function pick(row: Record<string, unknown>, field: RequiredField): unknown {
-  for (const alias of COLUMN_ALIASES[field]) {
+function pick(row: Record<string, unknown>, aliases: string[]): unknown {
+  for (const alias of aliases) {
     if (row[alias] !== undefined && row[alias] !== '') return row[alias];
   }
   return undefined;
@@ -46,17 +57,24 @@ export function parseWorkbookRows(rawRows: Record<string, unknown>[]): ParseResu
   const items: UploadItemPayload[] = [];
 
   rawRows.forEach((row) => {
-    const reference = String(pick(row, 'reference') ?? '').trim();
-    const name = String(pick(row, 'name') ?? '').trim();
+    const reference = String(pick(row, COLUMN_ALIASES.reference) ?? '').trim();
+    const name = String(pick(row, COLUMN_ALIASES.name) ?? '').trim();
 
     if (!reference || !name) {
       skippedCount += 1;
       return;
     }
 
-    const price = parseFloat(String(pick(row, 'price') ?? '0'));
-    const quantity = parseInt(String(pick(row, 'quantity') ?? '0'), 10);
-    const supplier = String(pick(row, 'supplier') ?? '').trim();
+    const price = parseFloat(String(pick(row, COLUMN_ALIASES.price) ?? '0'));
+    const quantity = parseInt(String(pick(row, COLUMN_ALIASES.quantity) ?? '0'), 10);
+    const supplier = String(pick(row, COLUMN_ALIASES.supplier) ?? '').trim();
+
+    // Preview-only — shown when present, but not validated (missing/invalid
+    // service data is a server-side rejection, not something checked here).
+    const wantsService = YES_VALUES.has(String(pick(row, OPTIONAL_COLUMN_ALIASES.service) ?? '').trim().toLowerCase());
+    const serviceName = wantsService ? String(pick(row, OPTIONAL_COLUMN_ALIASES.serviceName) ?? '').trim() : '';
+    const servicePriceRaw = wantsService ? pick(row, OPTIONAL_COLUMN_ALIASES.servicePrice) : undefined;
+    const servicePrice = servicePriceRaw !== undefined ? parseFloat(String(servicePriceRaw)) : undefined;
 
     items.push({
       reference,
@@ -64,6 +82,8 @@ export function parseWorkbookRows(rawRows: Record<string, unknown>[]): ParseResu
       price: Number.isNaN(price) ? 0 : price,
       quantity: Number.isNaN(quantity) ? 0 : quantity,
       supplier,
+      ...(serviceName ? { serviceName } : {}),
+      ...(servicePrice !== undefined && !Number.isNaN(servicePrice) ? { servicePrice } : {}),
     });
   });
 
