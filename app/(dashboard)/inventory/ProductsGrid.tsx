@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, Loader2, Pencil, Search, Trash2, Upload } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchProducts } from '@/store/inventory/inventorySlice';
@@ -12,8 +12,10 @@ import type { Product } from './types';
 
 export function ProductsGrid({
   showToast,
+  onImportClick,
 }: {
   showToast: (msg: string, type?: 'success' | 'error' | 'info') => void;
+  onImportClick: () => void;
 }) {
   const dispatch = useAppDispatch();
   const { products, status } = useAppSelector((state) => state.inventory);
@@ -82,6 +84,19 @@ export function ProductsGrid({
       ),
     },
     {
+      key: 'service',
+      header: 'Service',
+      cell: (row) =>
+        row.service_offered && row.service_name ? (
+          <span className="text-xs text-slate-500">
+            {row.service_name}
+            {row.service_price != null && <span className="text-slate-400"> · {formatKwanza(row.service_price)}</span>}
+          </span>
+        ) : (
+          <span className="text-xs text-slate-400">—</span>
+        ),
+    },
+    {
       key: 'actions',
       header: 'Actions',
       align: 'right',
@@ -108,15 +123,25 @@ export function ProductsGrid({
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-bold text-slate-900">Products</h2>
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
-          <input
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search SKU or product name…"
-            className="w-full rounded-lg border border-input py-2.5 pl-9 pr-4 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
-          />
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="relative w-full sm:w-64">
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search SKU or product name…"
+              className="w-full rounded-lg border border-input py-2.5 pl-9 pr-4 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={onImportClick}
+            className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90"
+          >
+            <Upload className="h-4 w-4" />
+            Import Inventory
+          </button>
         </div>
       </div>
 
