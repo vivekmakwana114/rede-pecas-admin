@@ -1,13 +1,18 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Loader2, Search } from 'lucide-react';
+import { Eye, Loader2, Search, Trash2 } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchCustomers } from '@/store/customers/customersSlice';
+import { deleteCustomer, fetchCustomers } from '@/store/customers/customersSlice';
 import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
+import { RowActionsMenu } from '@/components/RowActionsMenu';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { Toast } from '@/components/dashboard/Toast';
+import { useToast } from '@/components/dashboard/useToast';
 import { VehiclePlate } from './VehiclePlate';
+import { CustomerDetailModal } from './CustomerDetailModal';
 import type { Customer } from './types';
 
 function formatJoinedDate(iso: string): string {
@@ -20,10 +25,36 @@ export default function CustomersPage() {
   const dispatch = useAppDispatch();
   const { customers, status } = useAppSelector((state) => state.customers);
   const [query, setQuery] = useState('');
+  const { toast, showToast } = useToast();
+  const [viewCustomer, setViewCustomer] = useState<Customer | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     dispatch(fetchCustomers());
   }, [dispatch]);
+
+  const handleDelete = (customer: Customer) => {
+    setConfirmDialog({
+      title: `Delete customer ${customer.name}?`,
+      message: 'This removes them from the customer list. This action cannot be undone.',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const result = await dispatch(deleteCustomer(customer.phone));
+        if (deleteCustomer.fulfilled.match(result)) {
+          showToast(`Customer ${customer.name} deleted.`, 'success');
+          dispatch(fetchCustomers());
+        } else {
+          showToast('Failed to delete the customer.', 'error');
+        }
+      },
+    });
+  };
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -94,10 +125,27 @@ export default function CustomersPage() {
       sortValue: (row) => row.createdAt,
       cell: (row) => <span className="text-xs text-slate-500">{formatJoinedDate(row.createdAt)}</span>,
     },
+    {
+      key: 'actions',
+      header: 'Actions',
+      align: 'right',
+      cell: (row) => (
+        <div className="flex justify-end">
+          <RowActionsMenu
+            actions={[
+              { label: 'View customer', icon: Eye, onClick: () => setViewCustomer(row) },
+              { label: 'Delete customer', icon: Trash2, onClick: () => handleDelete(row), destructive: true },
+            ]}
+          />
+        </div>
+      ),
+    },
   ];
 
   return (
     <div className="space-y-4">
+      <Toast toast={toast} />
+
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <h2 className="text-lg font-bold text-slate-900">Customers</h2>
         <div className="relative w-full sm:max-w-xs">
@@ -127,6 +175,28 @@ export default function CustomersPage() {
           )
         }
       />
+
+      {viewCustomer && (
+        <CustomerDetailModal
+          customer={viewCustomer}
+          onClose={() => setViewCustomer(null)}
+          onSaved={(message) => {
+            showToast(message, 'success');
+            dispatch(fetchCustomers());
+          }}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          destructive
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   );
 }

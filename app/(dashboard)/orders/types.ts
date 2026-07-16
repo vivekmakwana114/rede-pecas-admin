@@ -9,6 +9,11 @@ import type { OrderStatus } from '@/store/orders/ordersSlice';
  */
 export type FilterValue = OrderStatus | 'all' | 'paymentProof';
 
+/** Distinct from `OrderStatus` — this is the stock decision specifically,
+ *  as sent by the backend's `stock_status` field, not the order's overall
+ *  bucket. */
+export type StockStatus = 'pending' | 'unavailable' | 'available' | 'confirmed';
+
 /**
  * Unified shape the orders grid renders. All four backend buckets
  * (pending/approved/rejected/stockConfirmation) share the same lean
@@ -20,11 +25,14 @@ export interface OrderRow {
   customer: string;
   price: number;
   part: string;
+  service: { name: string; price: number | null } | null;
+  /** Raw display string from the backend, as-is — no client-side reformatting. */
   time: string;
-  /** Epoch ms used for chronological sorting — `time` is a display string
-   *  ("HH:MM"), so sorting reconstructs today's epoch from it instead. */
+  /** Epoch ms used only for chronological sorting, never displayed. */
   sortTime: number;
   status: OrderStatus;
+  /** null when the backend hasn't sent `stock_status` yet — never guessed. */
+  stockStatus: StockStatus | null;
   actionable: boolean;
   hasProof: boolean;
   proofMediaType?: 'image' | 'document' | null;

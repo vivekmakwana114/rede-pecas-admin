@@ -1,18 +1,22 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Eye, PackageX, X } from 'lucide-react';
+import { Ban, Check, Eye, PackageX, X } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { confirmOrderStock, fetchOrders, reviewOrder } from '@/store/orders/ordersSlice';
+import { cancelOrder, confirmOrderStock, fetchOrders, reviewOrder } from '@/store/orders/ordersSlice';
 import { Toast } from '@/components/dashboard/Toast';
 import { useToast } from '@/components/dashboard/useToast';
 import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
+import { RowActionsMenu } from '@/components/RowActionsMenu';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { StatsPanel } from './StatsPanel';
 import { OrderFilter } from './OrderFilter';
 import { PaymentProofModal } from './PaymentProofModal';
+import { OrderDetailModal } from './OrderDetailModal';
 import { toOrderRow } from './adapters';
+import { STOCK_STATUS_STYLES } from './stockStatus';
 import type { FilterValue, OrderRow, OrderStatus } from './types';
 
 // Row tinting still keys off the underlying bucket (pending/approved/rejected/
@@ -56,6 +60,15 @@ export default function OrdersPage() {
     return () => clearInterval(interval);
   }, [dispatch]);
 
+  const [proofOrder, setProofOrder] = useState<OrderRow | null>(null);
+  const [viewOrder, setViewOrder] = useState<OrderRow | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
+
   const handleApprove = async (number: string) => {
     showToast('Issuing official invoice...', 'info');
     const result = await dispatch(reviewOrder({ number, approved: true }));
@@ -67,8 +80,7 @@ export default function OrdersPage() {
     }
   };
 
-  const handleReject = async (number: string) => {
-    if (!window.confirm(`Are you sure you want to reject order #${number}?`)) return;
+  const rejectOrder = async (number: string) => {
     const result = await dispatch(reviewOrder({ number, approved: false }));
     if (reviewOrder.fulfilled.match(result)) {
       showToast(`Order #${number} rejected. Customer notified.`, 'success');
@@ -78,8 +90,19 @@ export default function OrdersPage() {
     }
   };
 
-  const handleConfirmStock = async (number: string, available: boolean) => {
-    if (!available && !window.confirm(`Mark order #${number} as stock-unavailable? The customer will be notified.`)) return;
+  const handleReject = (number: string) => {
+    setConfirmDialog({
+      title: `Reject order #${number}?`,
+      message: 'The customer will be notified immediately. This cannot be undone.',
+      confirmLabel: 'Reject',
+      onConfirm: () => {
+        setConfirmDialog(null);
+        rejectOrder(number);
+      },
+    });
+  };
+
+  const confirmStock = async (number: string, available: boolean) => {
     const result = await dispatch(confirmOrderStock({ number, available }));
     if (confirmOrderStock.fulfilled.match(result)) {
       showToast(
@@ -92,7 +115,46 @@ export default function OrdersPage() {
     }
   };
 
-  const [proofOrder, setProofOrder] = useState<OrderRow | null>(null);
+  const handleConfirmStock = (number: string, available: boolean) => {
+    if (available) {
+      confirmStock(number, true);
+      return;
+    }
+    setConfirmDialog({
+      title: `Mark order #${number} as stock-unavailable?`,
+      message: 'The customer will be notified immediately. This cannot be undone.',
+      confirmLabel: 'Mark Unavailable',
+      onConfirm: () => {
+        setConfirmDialog(null);
+        confirmStock(number, false);
+      },
+    });
+  };
+
+  // Only orders still in flight (pending or awaiting stock confirmation) can
+  // be cancelled — the backend rejects an already-approved order (no refund
+  // flow exists) and an already-rejected/cancelled one (nothing left to do).
+  const cancelOrderAction = async (number: string) => {
+    const result = await dispatch(cancelOrder(number));
+    if (cancelOrder.fulfilled.match(result)) {
+      showToast(`Order #${number} cancelled.`, 'success');
+      dispatch(fetchOrders());
+    } else {
+      showToast('Failed to cancel the order.', 'error');
+    }
+  };
+
+  const handleCancel = (number: string) => {
+    setConfirmDialog({
+      title: `Cancel order #${number}?`,
+      message: 'This action cannot be undone.',
+      confirmLabel: 'Cancel Order',
+      onConfirm: () => {
+        setConfirmDialog(null);
+        cancelOrderAction(number);
+      },
+    });
+  };
 
   const allRows = useMemo<OrderRow[]>(
     () => [
@@ -147,7 +209,17 @@ export default function OrdersPage() {
       header: 'Part',
       sortable: true,
       sortValue: (row) => row.part,
-      cell: (row) => <span className="font-semibold text-slate-800">{row.part}</span>,
+      cell: (row) => (
+        <div>
+          <span className="font-semibold text-slate-800">{row.part}</span>
+          {row.service && (
+            <div className="text-2xs text-slate-400">
+              + {row.service.name}
+              {row.service.price != null && <> · {formatKwanza(row.service.price)}</>}
+            </div>
+          )}
+        </div>
+      ),
     },
     {
       key: 'price',
@@ -156,23 +228,6 @@ export default function OrdersPage() {
       align: 'right',
       sortValue: (row) => row.price,
       cell: (row) => <span className="font-semibold text-slate-800">{formatKwanza(row.price)}</span>,
-    },
-    {
-      key: 'paymentStatus',
-      header: 'Payment Status',
-      sortable: true,
-      align: 'center',
-      sortValue: (row) => paymentStatusOf(row.status),
-      cell: (row) => {
-        const paymentStatus = paymentStatusOf(row.status);
-        return (
-          <span
-            className={`inline-flex rounded-full border px-2.5 py-1 text-2xs font-bold ${PAYMENT_STATUS_STYLES[paymentStatus].badge}`}
-          >
-            {PAYMENT_STATUS_STYLES[paymentStatus].label}
-          </span>
-        );
-      },
     },
     {
       key: 'stockConfirmation',
@@ -203,20 +258,78 @@ export default function OrdersPage() {
       },
     },
     {
+      key: 'stockStatus',
+      header: 'Stock Status',
+      sortable: true,
+      align: 'center',
+      sortValue: (row) => row.stockStatus ?? '',
+      cell: (row) =>
+        row.stockStatus ? (
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-2xs font-bold ${STOCK_STATUS_STYLES[row.stockStatus].badge}`}
+          >
+            {STOCK_STATUS_STYLES[row.stockStatus].label}
+          </span>
+        ) : (
+          <span className="text-2xs text-slate-300">—</span>
+        ),
+    },
+    {
       key: 'paymentProof',
-      header: 'Invoice',
+      header: 'Payment Proof',
       align: 'center',
       cell: (row) => {
-        if (!row.hasProof) return <span className="text-2xs text-slate-300">—</span>;
+        if (!row.hasProof && !row.actionable) return <span className="text-2xs text-slate-300">—</span>;
         return (
-          <button
-            onClick={() => setProofOrder(row)}
-            aria-label={`View payment proof for order ${row.number}`}
-            title="View Proof"
-            className="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition-all hover:bg-slate-50"
+          <div className="flex flex-col items-center gap-1.5">
+            {row.hasProof && (
+              <button
+                onClick={() => setProofOrder(row)}
+                aria-label={`View payment proof for order ${row.number}`}
+                title="View Proof"
+                className="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition-all hover:bg-slate-50"
+              >
+                <Eye className="h-4 w-4" />
+              </button>
+            )}
+            {row.actionable && (
+              <div className="flex gap-1.5">
+                <button
+                  onClick={() => handleReject(row.number)}
+                  aria-label={`Reject order ${row.number}`}
+                  title="Reject"
+                  className="rounded-lg border border-red-200 p-1 text-red-600 transition-all hover:bg-red-50"
+                >
+                  <X className="h-3.5 w-3.5" />
+                </button>
+                <button
+                  onClick={() => handleApprove(row.number)}
+                  aria-label={`Approve order ${row.number}`}
+                  title="Approve"
+                  className="rounded-lg bg-emerald-600 p-1 text-white shadow-sm transition-all hover:bg-emerald-700"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      },
+    },
+    {
+      key: 'paymentStatus',
+      header: 'Payment Status',
+      sortable: true,
+      align: 'center',
+      sortValue: (row) => paymentStatusOf(row.status),
+      cell: (row) => {
+        const paymentStatus = paymentStatusOf(row.status);
+        return (
+          <span
+            className={`inline-flex rounded-full border px-2.5 py-1 text-2xs font-bold ${PAYMENT_STATUS_STYLES[paymentStatus].badge}`}
           >
-            <Eye className="h-4 w-4" />
-          </button>
+            {PAYMENT_STATUS_STYLES[paymentStatus].label}
+          </span>
         );
       },
     },
@@ -232,25 +345,23 @@ export default function OrdersPage() {
       header: 'Actions',
       align: 'right',
       cell: (row) => {
-        if (!row.actionable) return <span className="text-2xs text-slate-300">—</span>;
+        const cancellable = row.status === 'pending' || row.status === 'stockConfirmation';
         return (
-          <div className="flex justify-end gap-2">
-            <button
-              onClick={() => handleReject(row.number)}
-              aria-label={`Reject order ${row.number}`}
-              title="Reject"
-              className="rounded-lg border border-red-200 p-1.5 text-red-600 transition-all hover:bg-red-50"
-            >
-              <X className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => handleApprove(row.number)}
-              aria-label={`Approve order ${row.number}`}
-              title="Approve"
-              className="rounded-lg bg-emerald-600 p-1.5 text-white shadow-sm transition-all hover:bg-emerald-700"
-            >
-              <Check className="h-4 w-4" />
-            </button>
+          <div className="flex justify-end">
+            <RowActionsMenu
+              actions={[
+                { label: 'View order', icon: Eye, onClick: () => setViewOrder(row) },
+                ...(row.actionable
+                  ? [
+                      { label: 'Approve order', icon: Check, onClick: () => handleApprove(row.number) },
+                      { label: 'Reject order', icon: X, onClick: () => handleReject(row.number), destructive: true },
+                    ]
+                  : []),
+                ...(cancellable
+                  ? [{ label: 'Cancel order', icon: Ban, onClick: () => handleCancel(row.number), destructive: true }]
+                  : []),
+              ]}
+            />
           </div>
         );
       },
@@ -293,6 +404,28 @@ export default function OrdersPage() {
             setProofOrder(null);
             handleReject(number);
           }}
+        />
+      )}
+
+      {viewOrder && (
+        <OrderDetailModal
+          order={viewOrder}
+          onClose={() => setViewOrder(null)}
+          onViewProof={() => {
+            setProofOrder(viewOrder);
+            setViewOrder(null);
+          }}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          destructive
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
         />
       )}
     </div>
