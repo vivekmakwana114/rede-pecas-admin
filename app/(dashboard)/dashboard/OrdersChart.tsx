@@ -5,9 +5,9 @@ import { Bar, BarChart, CartesianGrid, Legend, ResponsiveContainer, Tooltip, XAx
 import type { AnalyticsPeriod, AnalyticsPoint } from '@/store/analytics/analyticsSlice';
 
 const SUBTITLE: Record<AnalyticsPeriod, string> = {
-  daily: 'By hour today, by status',
-  monthly: 'By day this month, by status',
-  yearly: 'By month this year, by status',
+  daily: 'Last 24 hours by hour, by status',
+  monthly: 'Last 30 days by day, by status',
+  yearly: 'Last 12 months by month, by status',
 };
 
 const STATUS_BARS: { key: 'approved' | 'pending' | 'stockConfirmation' | 'rejected'; label: string; color: string }[] = [

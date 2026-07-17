@@ -20,13 +20,13 @@ export default function DashboardPage() {
   const { period, points, status: analyticsStatus } = useAppSelector((state) => state.analytics);
 
   useEffect(() => {
-    dispatch(fetchOrders());
+    dispatch(fetchOrders('all'));
     dispatch(fetchOrderStats());
     dispatch(fetchProducts());
     dispatch(fetchCustomers());
     dispatch(fetchOrderAnalytics(period));
     const interval = setInterval(() => {
-      dispatch(fetchOrders());
+      dispatch(fetchOrders('all'));
       dispatch(fetchOrderStats());
     }, 15000);
     return () => clearInterval(interval);

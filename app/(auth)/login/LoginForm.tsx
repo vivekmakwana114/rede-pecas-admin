@@ -22,7 +22,7 @@ export function LoginForm() {
 
   useEffect(() => {
     if (tokens?.access?.token) {
-      router.replace('/orders');
+      router.replace('/dashboard');
     }
   }, [tokens, router]);
 
@@ -33,7 +33,7 @@ export function LoginForm() {
 
     try {
       await dispatch(loginUser({ email, password, rememberMe })).unwrap();
-      router.push('/orders');
+      router.push('/dashboard');
     } catch (err) {
       setLoginError(typeof err === 'string' ? err : 'Incorrect email or password.');
     } finally {

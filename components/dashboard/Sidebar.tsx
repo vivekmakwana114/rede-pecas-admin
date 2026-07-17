@@ -21,9 +21,10 @@ export function Sidebar() {
   const { pending, stockConfirmation } = useAppSelector((state) => state.orders);
 
   useEffect(() => {
-    // OrdersPage owns the 15s poll while it's mounted; this is just a
-    // one-off fetch so the badge below has data on other dashboard pages.
-    dispatch(fetchOrders());
+    // OrdersPage owns the poll while it's mounted; this is just a one-off
+    // fetch so the badge below has data on other dashboard pages. 'all' since
+    // the badge counts every outstanding order, not just today's.
+    dispatch(fetchOrders('all'));
   }, [dispatch]);
 
   // Same "still awaiting a decision" definition OrdersPage uses for its

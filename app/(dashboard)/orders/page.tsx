@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Ban, Check, Eye, PackageX, X } from 'lucide-react';
+import { Check, Eye, PackageX, Trash2, X } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { cancelOrder, confirmOrderStock, fetchOrders, reviewOrder } from '@/store/orders/ordersSlice';
@@ -50,22 +50,24 @@ export default function OrdersPage() {
   const { pending, approved, rejected, stockConfirmation } = useAppSelector((state) => state.orders);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterValue>('all');
+  const [range, setRange] = useState<'today' | 'all'>('all');
   const { toast, showToast } = useToast();
 
   useEffect(() => {
     // Auth is handled globally by the axios interceptor in lib/api.ts (attaches
     // the token, redirects to /login on 401), so this just needs to poll.
-    dispatch(fetchOrders());
-    const interval = setInterval(() => dispatch(fetchOrders()), 15000);
+    dispatch(fetchOrders(range));
+    const interval = setInterval(() => dispatch(fetchOrders(range)), 5000);
     return () => clearInterval(interval);
-  }, [dispatch]);
+  }, [dispatch, range]);
 
   const [proofOrder, setProofOrder] = useState<OrderRow | null>(null);
-  const [viewOrder, setViewOrder] = useState<OrderRow | null>(null);
+  const [viewOrderNumber, setViewOrderNumber] = useState<string | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
     confirmLabel: string;
+    destructive: boolean;
     onConfirm: () => void;
   } | null>(null);
 
@@ -74,17 +76,30 @@ export default function OrdersPage() {
     const result = await dispatch(reviewOrder({ number, approved: true }));
     if (reviewOrder.fulfilled.match(result)) {
       showToast(`Order #${number} approved successfully!`, 'success');
-      dispatch(fetchOrders());
+      dispatch(fetchOrders(range));
     } else {
       showToast('Failed to approve the order.', 'error');
     }
+  };
+
+  const handleApproveClick = (number: string) => {
+    setConfirmDialog({
+      title: `Approve order #${number}?`,
+      message: 'The official invoice will be issued and sent to the customer immediately.',
+      confirmLabel: 'Approve',
+      destructive: false,
+      onConfirm: () => {
+        setConfirmDialog(null);
+        handleApprove(number);
+      },
+    });
   };
 
   const rejectOrder = async (number: string) => {
     const result = await dispatch(reviewOrder({ number, approved: false }));
     if (reviewOrder.fulfilled.match(result)) {
       showToast(`Order #${number} rejected. Customer notified.`, 'success');
-      dispatch(fetchOrders());
+      dispatch(fetchOrders(range));
     } else {
       showToast('Failed to reject the order.', 'error');
     }
@@ -95,6 +110,7 @@ export default function OrdersPage() {
       title: `Reject order #${number}?`,
       message: 'The customer will be notified immediately. This cannot be undone.',
       confirmLabel: 'Reject',
+      destructive: true,
       onConfirm: () => {
         setConfirmDialog(null);
         rejectOrder(number);
@@ -109,7 +125,7 @@ export default function OrdersPage() {
         available ? `Stock confirmed for order #${number}.` : `Order #${number} marked stock-unavailable.`,
         'success',
       );
-      dispatch(fetchOrders());
+      dispatch(fetchOrders(range));
     } else {
       showToast(available ? 'Failed to confirm stock.' : 'Failed to mark stock unavailable.', 'error');
     }
@@ -117,13 +133,23 @@ export default function OrdersPage() {
 
   const handleConfirmStock = (number: string, available: boolean) => {
     if (available) {
-      confirmStock(number, true);
+      setConfirmDialog({
+        title: `Confirm stock for order #${number}?`,
+        message: 'The proforma and payment-method options will be sent to the customer immediately.',
+        confirmLabel: 'Confirm Stock',
+        destructive: false,
+        onConfirm: () => {
+          setConfirmDialog(null);
+          confirmStock(number, true);
+        },
+      });
       return;
     }
     setConfirmDialog({
       title: `Mark order #${number} as stock-unavailable?`,
       message: 'The customer will be notified immediately. This cannot be undone.',
       confirmLabel: 'Mark Unavailable',
+      destructive: true,
       onConfirm: () => {
         setConfirmDialog(null);
         confirmStock(number, false);
@@ -137,18 +163,19 @@ export default function OrdersPage() {
   const cancelOrderAction = async (number: string) => {
     const result = await dispatch(cancelOrder(number));
     if (cancelOrder.fulfilled.match(result)) {
-      showToast(`Order #${number} cancelled.`, 'success');
-      dispatch(fetchOrders());
+      showToast(`Order #${number} deleted.`, 'success');
+      dispatch(fetchOrders(range));
     } else {
-      showToast('Failed to cancel the order.', 'error');
+      showToast('Failed to delete the order.', 'error');
     }
   };
 
   const handleCancel = (number: string) => {
     setConfirmDialog({
-      title: `Cancel order #${number}?`,
+      title: `Delete order #${number}?`,
       message: 'This action cannot be undone.',
-      confirmLabel: 'Cancel Order',
+      confirmLabel: 'Delete Order',
+      destructive: true,
       onConfirm: () => {
         setConfirmDialog(null);
         cancelOrderAction(number);
@@ -156,13 +183,19 @@ export default function OrdersPage() {
     });
   };
 
+  // Combined across all 4 buckets and sorted by most-recently-changed first —
+  // otherwise an order that just moved into e.g. the stockConfirmation or
+  // payment-proof-received bucket would land wherever that bucket's array
+  // happens to be concatenated, potentially pushed onto page 2 despite being
+  // the freshest thing that needs attention.
   const allRows = useMemo<OrderRow[]>(
-    () => [
-      ...pending.map((item) => toOrderRow(item, 'pending')),
-      ...approved.map((item) => toOrderRow(item, 'approved')),
-      ...rejected.map((item) => toOrderRow(item, 'rejected')),
-      ...stockConfirmation.map((item) => toOrderRow(item, 'stockConfirmation')),
-    ],
+    () =>
+      [
+        ...pending.map((item) => toOrderRow(item, 'pending')),
+        ...approved.map((item) => toOrderRow(item, 'approved')),
+        ...rejected.map((item) => toOrderRow(item, 'rejected')),
+        ...stockConfirmation.map((item) => toOrderRow(item, 'stockConfirmation')),
+      ].sort((a, b) => b.lastChangedTime - a.lastChangedTime),
     [pending, approved, rejected, stockConfirmation],
   );
 
@@ -234,25 +267,30 @@ export default function OrdersPage() {
       header: 'Stock',
       align: 'center',
       cell: (row) => {
-        if (row.status !== 'stockConfirmation') return <span className="text-2xs text-slate-300">—</span>;
+        if (row.status !== 'stockConfirmation') {
+          return <span className="text-xs text-slate-500">Qty: {row.quantity}</span>;
+        }
         return (
-          <div className="flex justify-center gap-2">
-            <button
-              onClick={() => handleConfirmStock(row.number, false)}
-              aria-label={`Mark order ${row.number} stock-unavailable`}
-              title="Mark Unavailable"
-              className="rounded-lg border border-red-200 p-1.5 text-red-600 transition-all hover:bg-red-50"
-            >
-              <PackageX className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => handleConfirmStock(row.number, true)}
-              aria-label={`Confirm stock for order ${row.number}`}
-              title="Confirm Stock"
-              className="rounded-lg bg-emerald-600 p-1.5 text-white shadow-sm transition-all hover:bg-emerald-700"
-            >
-              <Check className="h-4 w-4" />
-            </button>
+          <div className="flex flex-col items-center gap-1">
+            <span className="text-2xs text-slate-500">Qty: {row.quantity}</span>
+            <div className="flex justify-center gap-2">
+              <button
+                onClick={() => handleConfirmStock(row.number, false)}
+                aria-label={`Mark order ${row.number} stock-unavailable`}
+                title="Mark Unavailable"
+                className="rounded-lg border border-red-200 p-1.5 text-red-600 transition-all hover:bg-red-50"
+              >
+                <PackageX className="h-4 w-4" />
+              </button>
+              <button
+                onClick={() => handleConfirmStock(row.number, true)}
+                aria-label={`Confirm stock for order ${row.number}`}
+                title="Confirm Stock"
+                className="rounded-lg bg-emerald-600 p-1.5 text-white shadow-sm transition-all hover:bg-emerald-700"
+              >
+                <Check className="h-4 w-4" />
+              </button>
+            </div>
           </div>
         );
       },
@@ -279,9 +317,19 @@ export default function OrdersPage() {
       header: 'Payment Proof',
       align: 'center',
       cell: (row) => {
-        if (!row.hasProof && !row.actionable) return <span className="text-2xs text-slate-300">—</span>;
+        if (!row.hasProof && !row.actionable && !row.verifying) {
+          return <span className="text-2xs text-slate-300">—</span>;
+        }
+        if (row.verifying) {
+          return (
+            <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-2xs font-bold text-sky-700">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+              Verifying…
+            </span>
+          );
+        }
         return (
-          <div className="flex flex-col items-center gap-1.5">
+          <div className="flex items-center justify-center gap-1.5">
             {row.hasProof && (
               <button
                 onClick={() => setProofOrder(row)}
@@ -293,7 +341,7 @@ export default function OrdersPage() {
               </button>
             )}
             {row.actionable && (
-              <div className="flex gap-1.5">
+              <>
                 <button
                   onClick={() => handleReject(row.number)}
                   aria-label={`Reject order ${row.number}`}
@@ -303,14 +351,14 @@ export default function OrdersPage() {
                   <X className="h-3.5 w-3.5" />
                 </button>
                 <button
-                  onClick={() => handleApprove(row.number)}
+                  onClick={() => handleApproveClick(row.number)}
                   aria-label={`Approve order ${row.number}`}
                   title="Approve"
                   className="rounded-lg bg-emerald-600 p-1 text-white shadow-sm transition-all hover:bg-emerald-700"
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
-              </div>
+              </>
             )}
           </div>
         );
@@ -335,7 +383,7 @@ export default function OrdersPage() {
     },
     {
       key: 'time',
-      header: 'Time',
+      header: 'Date & Time',
       sortable: true,
       sortValue: (row) => row.sortTime,
       cell: (row) => <span className="text-xs text-slate-500">{row.time}</span>,
@@ -350,15 +398,9 @@ export default function OrdersPage() {
           <div className="flex justify-end">
             <RowActionsMenu
               actions={[
-                { label: 'View order', icon: Eye, onClick: () => setViewOrder(row) },
-                ...(row.actionable
-                  ? [
-                      { label: 'Approve order', icon: Check, onClick: () => handleApprove(row.number) },
-                      { label: 'Reject order', icon: X, onClick: () => handleReject(row.number), destructive: true },
-                    ]
-                  : []),
+                { label: 'View order', icon: Eye, onClick: () => setViewOrderNumber(row.number) },
                 ...(cancellable
-                  ? [{ label: 'Cancel order', icon: Ban, onClick: () => handleCancel(row.number), destructive: true }]
+                  ? [{ label: 'Delete order', icon: Trash2, onClick: () => handleCancel(row.number), destructive: true }]
                   : []),
               ]}
             />
@@ -379,6 +421,8 @@ export default function OrdersPage() {
         onQueryChange={setQuery}
         statusFilter={statusFilter}
         onStatusFilterChange={setStatusFilter}
+        rangeFilter={range}
+        onRangeFilterChange={setRange}
         badgeCounts={badgeCounts}
       />
 
@@ -398,7 +442,7 @@ export default function OrdersPage() {
           onClose={() => setProofOrder(null)}
           onApprove={(number) => {
             setProofOrder(null);
-            handleApprove(number);
+            handleApproveClick(number);
           }}
           onReject={(number) => {
             setProofOrder(null);
@@ -407,13 +451,14 @@ export default function OrdersPage() {
         />
       )}
 
-      {viewOrder && (
+      {viewOrderNumber && (
         <OrderDetailModal
-          order={viewOrder}
-          onClose={() => setViewOrder(null)}
+          orderNumber={viewOrderNumber}
+          onClose={() => setViewOrderNumber(null)}
           onViewProof={() => {
-            setProofOrder(viewOrder);
-            setViewOrder(null);
+            const row = allRows.find((r) => r.number === viewOrderNumber);
+            if (row) setProofOrder(row);
+            setViewOrderNumber(null);
           }}
         />
       )}
@@ -423,7 +468,7 @@ export default function OrdersPage() {
           title={confirmDialog.title}
           message={confirmDialog.message}
           confirmLabel={confirmDialog.confirmLabel}
-          destructive
+          destructive={confirmDialog.destructive}
           onConfirm={confirmDialog.onConfirm}
           onCancel={() => setConfirmDialog(null)}
         />

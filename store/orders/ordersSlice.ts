@@ -23,28 +23,37 @@ export interface RawOrderItem {
   number: string;
   customer: string;
   price: string;
+  quantity?: number;
   part: string;
   time: string;
+  /** ISO timestamp, pending bucket only — see OrderRow.lastChangedAt. */
+  updated_at?: string;
   has_proof?: boolean;
   payment_proof_media_type?: 'image' | 'document' | null;
-  stock_status?: 'pending' | 'unavailable' | 'available' | 'confirmed';
+  stock_status?: 'pending' | 'unavailable' | 'confirmed';
   service_offered?: boolean;
   service_name?: string | null;
   service_price?: string | number | null;
+  verifying?: boolean;
+  reviewable?: boolean;
 }
 
 export interface OrderItem {
   number: string;
   customer: string;
   price: number;
+  quantity: number;
   part: string;
   time: string;
+  updated_at?: string;
   has_proof?: boolean;
   payment_proof_media_type?: 'image' | 'document' | null;
-  stock_status?: 'pending' | 'unavailable' | 'available' | 'confirmed';
+  stock_status?: 'pending' | 'unavailable' | 'confirmed';
   service_offered?: boolean;
   service_name?: string | null;
   service_price?: number | null;
+  verifying?: boolean;
+  reviewable?: boolean;
 }
 
 interface OrdersResponseData {
@@ -105,6 +114,7 @@ function toOrderItem(raw: RawOrderItem): OrderItem {
   return {
     ...raw,
     price: Number(raw.price) || 0,
+    quantity: raw.quantity ?? 0,
     service_price: raw.service_price != null ? Number(raw.service_price) : null,
   };
 }
@@ -116,14 +126,17 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
-export const fetchOrders = createAsyncThunk('orders/fetchOrders', async (_: void, { rejectWithValue }) => {
-  try {
-    const res = await ordersService.getOrders();
-    return res.data.data as OrdersResponseData;
-  } catch (err) {
-    return rejectWithValue(extractErrorMessage(err, 'Failed to load orders.'));
+export const fetchOrders = createAsyncThunk(
+  'orders/fetchOrders',
+  async (range: 'today' | 'all' = 'all', { rejectWithValue }) => {
+    try {
+      const res = await ordersService.getOrders(range);
+      return res.data.data as OrdersResponseData;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to load orders.'));
+    }
   }
-});
+);
 
 export const fetchOrderStats = createAsyncThunk('orders/fetchOrderStats', async (_: void, { rejectWithValue }) => {
   try {

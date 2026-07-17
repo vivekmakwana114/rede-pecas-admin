@@ -1,11 +1,15 @@
 import { api } from '@/lib/api';
 
-export const getOrders = () => {
-  return api.get('/admin/orders');
+export const getOrders = (range: 'today' | 'all' = 'all') => {
+  return api.get('/admin/orders', { params: { range } });
 };
 
 export const getOrderStats = () => {
   return api.get('/admin/orders/stats');
+};
+
+export const getOrderDetail = (number: string) => {
+  return api.get(`/admin/orders/${encodeURIComponent(number)}`);
 };
 
 export const reviewOrder = (number: string, approved: boolean) => {
