@@ -6,9 +6,9 @@ import { formatKwanza } from '@/lib/format';
 import type { AnalyticsPeriod, AnalyticsPoint } from '@/store/analytics/analyticsSlice';
 
 const SUBTITLE: Record<AnalyticsPeriod, string> = {
-  daily: 'Approved orders, by hour today',
-  monthly: 'Approved orders, by day this month',
-  yearly: 'Approved orders, by month this year',
+  daily: 'Approved orders, last 24 hours by hour',
+  monthly: 'Approved orders, last 30 days by day',
+  yearly: 'Approved orders, last 12 months by month',
 };
 
 export function RevenueChart({

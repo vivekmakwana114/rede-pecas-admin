@@ -4,12 +4,6 @@ import * as analyticsService from './analyticsService';
 
 export type AnalyticsPeriod = 'daily' | 'monthly' | 'yearly';
 
-// NOTE: GET /admin/orders/analytics is not a confirmed endpoint yet — there's
-// no real backend support for period-bucketed history (GET /admin/orders only
-// returns today's live pending/approved/rejected/stockConfirmation snapshot,
-// with no per-order date). This assumes the backend will do the bucketing
-// server-side and return one point per hour/day/month depending on `period`.
-// `label` is whatever the backend wants on the X axis ("08:00", "12 Mar", "Jun").
 interface RawAnalyticsPoint {
   label: string;
   revenue: string;

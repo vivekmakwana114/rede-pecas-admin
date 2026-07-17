@@ -77,33 +77,24 @@ export function PaymentProofModal({
           )}
         </div>
 
-        <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
-          {reviewable ? (
-            <>
-              <button
-                onClick={() => onReject(number)}
-                className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition-all hover:bg-red-50"
-              >
-                <X className="h-4 w-4" />
-                Reject
-              </button>
-              <button
-                onClick={() => onApprove(number)}
-                className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-700"
-              >
-                <Check className="h-4 w-4" />
-                Approve
-              </button>
-            </>
-          ) : (
+        {reviewable && (
+          <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
             <button
-              onClick={onClose}
-              className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50"
+              onClick={() => onReject(number)}
+              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition-all hover:bg-red-50"
             >
-              Close
+              <X className="h-4 w-4" />
+              Reject
             </button>
-          )}
-        </div>
+            <button
+              onClick={() => onApprove(number)}
+              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-700"
+            >
+              <Check className="h-4 w-4" />
+              Approve
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

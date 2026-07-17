@@ -9,28 +9,51 @@ export interface Vehicle {
   plate: string;
 }
 
-// NOTE: GET /admin/customers is not yet confirmed against the real backend —
-// this mirrors GET /admin/orders' { data: [...] } envelope and its
-// price-as-string quirk (applied here to totalSpent). Adjust once the real
-// response shape is shared.
+interface RawVehicle {
+  make: string | null;
+  model: string | null;
+  year: string | null;
+  plate: string | null;
+}
+
+// Confirmed shape from GET /admin/customers (customer.model.ts/
+// customer.controller.ts): a paginated envelope — { customers, total, page,
+// limit } — not a flat array, and customers are keyed by phone (no numeric
+// id). orders_count/total_spent/vehicles are a LATERAL-joined aggregate
+// (see CUSTOMER_STATS_JOIN in customer.model.ts) — total_spent sums only
+// approved orders (same "money actually collected" convention as the
+// dashboard's Revenue card), vehicles only includes confirmed ones (an
+// in-progress manual-entry wizard row isn't a real vehicle yet).
 interface RawCustomer {
-  id: number | string;
-  name: string;
   phone: string;
-  createdAt: string;
-  ordersCount: number;
-  totalSpent: string;
-  vehicles: Vehicle[];
+  name: string | null;
+  nif: string | null;
+  address: string | null;
+  email: string | null;
+  first_contact_at: string;
+  orders_count: number;
+  total_spent: string;
+  vehicles: RawVehicle[];
 }
 
 export interface Customer {
-  id: number | string;
+  id: string;
   name: string;
   phone: string;
+  nif: string | null;
+  address: string | null;
+  email: string | null;
   createdAt: string;
   ordersCount: number;
   totalSpent: number;
   vehicles: Vehicle[];
+}
+
+export interface CustomerUpdateFields {
+  name?: string;
+  nif?: string | null;
+  address?: string | null;
+  email?: string | null;
 }
 
 interface CustomersState {
@@ -45,8 +68,28 @@ const initialState: CustomersState = {
   error: null,
 };
 
+function toVehicle(raw: RawVehicle): Vehicle {
+  return {
+    make: raw.make || '—',
+    model: raw.model || '—',
+    year: Number(raw.year) || 0,
+    plate: raw.plate || '—',
+  };
+}
+
 function toCustomer(raw: RawCustomer): Customer {
-  return { ...raw, totalSpent: Number(raw.totalSpent) || 0, vehicles: raw.vehicles ?? [] };
+  return {
+    id: raw.phone,
+    name: raw.name || raw.phone,
+    phone: raw.phone,
+    nif: raw.nif,
+    address: raw.address,
+    email: raw.email,
+    createdAt: raw.first_contact_at,
+    ordersCount: raw.orders_count,
+    totalSpent: Number(raw.total_spent) || 0,
+    vehicles: (raw.vehicles ?? []).map(toVehicle),
+  };
 }
 
 function extractErrorMessage(err: unknown, fallback: string): string {
@@ -59,11 +102,35 @@ function extractErrorMessage(err: unknown, fallback: string): string {
 export const fetchCustomers = createAsyncThunk('customers/fetchCustomers', async (_: void, { rejectWithValue }) => {
   try {
     const res = await customersService.getCustomers();
-    return (res.data.data as RawCustomer[]).map(toCustomer);
+    return (res.data.data.customers as RawCustomer[]).map(toCustomer);
   } catch (err) {
     return rejectWithValue(extractErrorMessage(err, 'Failed to load customers.'));
   }
 });
+
+export const updateCustomer = createAsyncThunk(
+  'customers/updateCustomer',
+  async ({ phone, fields }: { phone: string; fields: CustomerUpdateFields }, { rejectWithValue }) => {
+    try {
+      await customersService.updateCustomer(phone, fields);
+      return phone;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to update the customer.'));
+    }
+  },
+);
+
+export const deleteCustomer = createAsyncThunk(
+  'customers/deleteCustomer',
+  async (phone: string, { rejectWithValue }) => {
+    try {
+      await customersService.deleteCustomer(phone);
+      return phone;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to delete the customer.'));
+    }
+  },
+);
 
 const customersSlice = createSlice({
   name: 'customers',
