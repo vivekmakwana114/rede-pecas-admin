@@ -45,9 +45,15 @@ function pick(row: Record<string, unknown>, aliases: string[]): unknown {
   return undefined;
 }
 
-export function parseWorkbookRows(rawRows: Record<string, unknown>[]): ParseResult {
-  const headers = new Set<string>();
-  rawRows.forEach((row) => Object.keys(row).forEach((key) => headers.add(key)));
+// headerRow is the literal first row of the sheet (XLSX.utils.sheet_to_json
+// with { header: 1 }) — missing-column detection must read this, not the
+// keys of the parsed data-row objects: sheet_to_json omits a key from a row
+// object whenever that row's cell for it is empty, so a header-only file (no
+// data rows yet, e.g. a freshly downloaded template) or a column that's
+// blank on every single row would otherwise be falsely reported as an
+// entirely missing column instead of what it actually is.
+export function parseWorkbookRows(rawRows: Record<string, unknown>[], headerRow: unknown[] = []): ParseResult {
+  const headers = new Set<string>(headerRow.map((h) => String(h ?? '').trim()));
 
   const missingColumns = (Object.keys(COLUMN_ALIASES) as RequiredField[])
     .filter((field) => !COLUMN_ALIASES[field].some((alias) => headers.has(alias)))

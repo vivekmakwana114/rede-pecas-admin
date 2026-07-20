@@ -4,10 +4,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { Eye, Loader2, Pencil, Search, Trash2, Upload } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchProducts } from '@/store/inventory/inventorySlice';
+import { deleteProduct, fetchProducts } from '@/store/inventory/inventorySlice';
 import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
 import { RowActionsMenu } from '@/components/RowActionsMenu';
+import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { ProductDetailModal } from './ProductDetailModal';
 import type { Product } from './types';
 
 export function ProductsGrid({
@@ -20,10 +22,35 @@ export function ProductsGrid({
   const dispatch = useAppDispatch();
   const { products, status } = useAppSelector((state) => state.inventory);
   const [query, setQuery] = useState('');
+  const [detailProduct, setDetailProduct] = useState<{ product: Product; editing: boolean } | null>(null);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    title: string;
+    message: string;
+    confirmLabel: string;
+    onConfirm: () => void;
+  } | null>(null);
 
   useEffect(() => {
     dispatch(fetchProducts());
   }, [dispatch]);
+
+  const handleDelete = (product: Product) => {
+    setConfirmDialog({
+      title: `Delete product ${product.name}?`,
+      message: 'This removes it from the inventory list. This action cannot be undone.',
+      confirmLabel: 'Delete',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const result = await dispatch(deleteProduct(product.id));
+        if (deleteProduct.fulfilled.match(result)) {
+          showToast(`Product ${product.name} deleted.`, 'success');
+          dispatch(fetchProducts());
+        } else {
+          showToast('Failed to delete the product.', 'error');
+        }
+      },
+    });
+  };
 
   const filteredRows = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -104,13 +131,13 @@ export function ProductsGrid({
         <div className="flex justify-end">
           <RowActionsMenu
             actions={[
-              { label: 'View product', icon: Eye, onClick: () => showToast(`View ${row.name} — coming soon.`, 'info') },
-              { label: 'Edit product', icon: Pencil, onClick: () => showToast(`Edit ${row.name} — coming soon.`, 'info') },
+              { label: 'View product', icon: Eye, onClick: () => setDetailProduct({ product: row, editing: false }) },
+              { label: 'Edit product', icon: Pencil, onClick: () => setDetailProduct({ product: row, editing: true }) },
               {
                 label: 'Delete product',
                 icon: Trash2,
                 destructive: true,
-                onClick: () => showToast(`Delete ${row.name} — coming soon.`, 'info'),
+                onClick: () => handleDelete(row),
               },
             ]}
           />
@@ -148,7 +175,7 @@ export function ProductsGrid({
       <Grid
         columns={columns}
         rows={filteredRows}
-        getRowId={(row) => row.reference}
+        getRowId={(row) => String(row.id)}
         emptyMessage={
           status === 'loading' ? (
             <span className="inline-flex items-center gap-2 text-slate-400">
@@ -160,6 +187,29 @@ export function ProductsGrid({
           )
         }
       />
+
+      {detailProduct && (
+        <ProductDetailModal
+          product={detailProduct.product}
+          initialEditing={detailProduct.editing}
+          onClose={() => setDetailProduct(null)}
+          onSaved={(message) => {
+            showToast(message, 'success');
+            dispatch(fetchProducts());
+          }}
+        />
+      )}
+
+      {confirmDialog && (
+        <ConfirmDialog
+          title={confirmDialog.title}
+          message={confirmDialog.message}
+          confirmLabel={confirmDialog.confirmLabel}
+          destructive
+          onConfirm={confirmDialog.onConfirm}
+          onCancel={() => setConfirmDialog(null)}
+        />
+      )}
     </div>
   );
 }

@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   Check,
   CheckCircle2,
+  Download,
   FileSpreadsheet,
   Loader2,
   UploadCloud,
@@ -17,6 +18,7 @@ import { importInventory, resetUpload, fetchProducts } from '@/store/inventory/i
 import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
 import { parseWorkbookRows, type ParseResult } from './adapters';
+import * as inventoryService from '@/store/inventory/inventoryService';
 import type { UploadItemPayload } from '@/store/inventory/inventoryService';
 
 // Client-side parsing (adapters.ts) only drives the preview grid below —
@@ -73,6 +75,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
+  const [templateDownloading, setTemplateDownloading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
   // The panel is only ever mounted while open (page.tsx conditionally renders
@@ -94,8 +97,9 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
       try {
         const workbook = XLSX.read(evt.target?.result, { type: 'binary' });
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
+        const headerRow = (XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1 })[0] as unknown[] | undefined) ?? [];
         const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet);
-        const result = parseWorkbookRows(rawRows);
+        const result = parseWorkbookRows(rawRows, headerRow);
 
         if (result.missingColumns.length > 0) {
           setParseError({ type: 'missing-columns', missingColumns: result.missingColumns });
@@ -123,6 +127,21 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (file) processFile(file);
+  };
+
+  const handleDownloadTemplate = async () => {
+    setTemplateDownloading(true);
+    try {
+      const res = await inventoryService.downloadTemplate();
+      const url = URL.createObjectURL(res.data);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'inventory-template.xlsx';
+      link.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setTemplateDownloading(false);
+    }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -212,6 +231,18 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
                 <UploadCloud className="mb-3 h-10 w-10 text-slate-400" />
                 <p className="text-sm font-bold text-slate-700">Drop a CSV or Excel file, or click to browse</p>
                 <p className="mt-1 text-xs text-slate-400">Needs Reference, Name, Supplier, Price and Quantity columns</p>
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownloadTemplate();
+                  }}
+                  disabled={templateDownloading}
+                  className="mt-4 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-60"
+                >
+                  {templateDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+                  Download template
+                </button>
               </div>
             </div>
           )}

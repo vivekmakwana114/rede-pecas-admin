@@ -1,1 +1,1 @@
-export type { Product, UploadResult } from '@/store/inventory/inventorySlice';
+export type { Product, ProductUpdateFields, UploadResult } from '@/store/inventory/inventorySlice';
