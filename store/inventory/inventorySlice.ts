@@ -3,11 +3,25 @@ import axios from 'axios';
 import * as inventoryService from './inventoryService';
 
 export interface Product {
+  id: number;
   reference: string;
   name: string;
   price: number;
   quantity: number;
+  delivery_time?: string | null;
   supplier?: string;
+  supplier_id?: number;
+  service_offered?: boolean;
+  service_name?: string | null;
+  service_price?: number | null;
+}
+
+export interface ProductUpdateFields {
+  name?: string;
+  reference?: string;
+  price?: number;
+  quantity?: number;
+  delivery_time?: string | null;
   service_offered?: boolean;
   service_name?: string | null;
   service_price?: number | null;
@@ -61,6 +75,30 @@ export const importInventory = createAsyncThunk(
       return res.data.data as UploadResult;
     } catch (err) {
       return rejectWithValue(extractErrorMessage(err, 'Failed to import the stock file.'));
+    }
+  },
+);
+
+export const updateProduct = createAsyncThunk(
+  'inventory/updateProduct',
+  async ({ id, fields }: { id: number; fields: ProductUpdateFields }, { rejectWithValue }) => {
+    try {
+      await inventoryService.updateProduct(id, fields);
+      return id;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to update the product.'));
+    }
+  },
+);
+
+export const deleteProduct = createAsyncThunk(
+  'inventory/deleteProduct',
+  async (id: number, { rejectWithValue }) => {
+    try {
+      await inventoryService.deleteProduct(id);
+      return id;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to delete the product.'));
     }
   },
 );
