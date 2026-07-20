@@ -64,7 +64,7 @@ export function RowActionsMenu({ actions }: { actions: RowAction[] }) {
         aria-label="Open actions menu"
         aria-haspopup="menu"
         aria-expanded={open}
-        className="rounded-lg p-1.5 text-slate-400 transition-colors hover:bg-slate-100 hover:text-slate-700"
+        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
         <MoreVertical className="h-4 w-4" />
       </button>
@@ -75,7 +75,7 @@ export function RowActionsMenu({ actions }: { actions: RowAction[] }) {
             ref={menuRef}
             role="menu"
             style={{ top: position.top, left: position.left, width: MENU_WIDTH }}
-            className="fixed z-50 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg"
+            className="fixed z-50 overflow-hidden rounded-lg border border-border bg-background py-1 shadow-lg"
           >
             {actions.map(({ label, icon: Icon, onClick, destructive }) => (
               <button
@@ -87,7 +87,7 @@ export function RowActionsMenu({ actions }: { actions: RowAction[] }) {
                   onClick();
                 }}
                 className={`flex w-full items-center gap-2 px-3 py-2 text-left text-xs font-semibold transition-colors ${
-                  destructive ? 'text-red-600 hover:bg-red-50' : 'text-slate-700 hover:bg-slate-50'
+                  destructive ? 'text-destructive hover:bg-destructive/10' : 'text-foreground hover:bg-accent'
                 }`}
               >
                 <Icon className="h-3.5 w-3.5" />

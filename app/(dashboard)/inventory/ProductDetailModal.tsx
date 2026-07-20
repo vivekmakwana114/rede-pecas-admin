@@ -1,20 +1,90 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Pencil, X } from 'lucide-react';
+import { X } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch } from '@/store/hooks';
 import { updateProduct, type Product, type ProductUpdateFields } from '@/store/inventory/inventorySlice';
+import { Section, InfoRow } from '@/components/DetailPanel';
 
-const inputClassName =
-  'w-full rounded-lg border border-input px-3 py-2 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
+const baseInputClassName =
+  'w-full rounded-lg border px-3 py-2 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
+
+function fieldInputClassName(hasError?: string) {
+  return `${baseInputClassName} ${hasError ? 'border-destructive' : 'border-input'}`;
+}
+
+const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
+
+type FormState = {
+  name: string;
+  reference: string;
+  price: string;
+  quantity: string;
+  service_offered: boolean;
+  service_name: string;
+  service_price: string;
+  supplierName: string;
+  supplierAddress: string;
+  supplierPhone: string;
+};
 
 /**
- * View/edit modal for a single product — mirrors CustomerDetailModal's
- * layout (header, dl rows, footer action) with an inline edit form swapped
- * in rather than a second modal. Supplier is shown but never editable here —
- * reassigning it would change the row's UNIQUE (supplier_id, reference)
- * identity in the backend, out of scope for a field edit.
+ * Every required field must actually be filled in — a blank Price/Quantity
+ * string coerces to 0 via Number(''), which would otherwise sail through
+ * silently as "valid" data instead of being caught as missing. Service Name/
+ * Price are only required once the Service checkbox is on — picking the
+ * service without giving it a name and a price is rejected instead of saved
+ * as a half-filled, unusable offer (mirrors validateRow's rule for the bulk
+ * import path in product.service.ts, so both entry points agree).
+ */
+function validate(form: FormState): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  if (!form.name.trim()) errors.name = 'Required.';
+  if (!form.reference.trim()) errors.reference = 'Required.';
+
+  if (!form.price.trim()) {
+    errors.price = 'Required.';
+  } else if (Number.isNaN(Number(form.price)) || Number(form.price) < 0) {
+    errors.price = 'Must be 0 or more.';
+  }
+
+  if (!form.quantity.trim()) {
+    errors.quantity = 'Required.';
+  } else if (!Number.isInteger(Number(form.quantity)) || Number(form.quantity) < 0) {
+    errors.quantity = 'Must be a whole number, 0 or more.';
+  }
+
+  if (!form.supplierName.trim()) errors.supplierName = 'Required.';
+
+  if (form.service_offered) {
+    if (!form.service_name.trim()) errors.service_name = 'Required when service is on.';
+    if (!form.service_price.trim()) {
+      errors.service_price = 'Required when service is on.';
+    } else if (Number.isNaN(Number(form.service_price)) || Number(form.service_price) < 0) {
+      errors.service_price = 'Must be 0 or more.';
+    }
+  }
+
+  return errors;
+}
+
+/** Inline error text under a field — absent entirely when there's nothing wrong with it. */
+function FieldError({ message }: { message?: string }) {
+  if (!message) return null;
+  return <p className="mt-1 text-2xs font-normal text-destructive">{message}</p>;
+}
+
+/**
+ * View/edit side panel for a single product — slides in from the right
+ * (matching ImportPanel's drawer, rather than a centered dialog) with fields
+ * grouped into Product / Supplier / Service sections instead of one flat
+ * list. Every field is editable, including the supplier's own name/address/
+ * phone — editing those updates the shared supplier row (so every other
+ * product from the same supplier reads the change too), not the product's
+ * own (supplier_id, reference) identity. There's no dedicated supplier
+ * management screen yet, so this panel doubles as it.
  */
 export function ProductDetailModal({
   product,
@@ -31,19 +101,37 @@ export function ProductDetailModal({
   const [editing, setEditing] = useState(initialEditing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [form, setForm] = useState<FormState>({
     name: product.name,
     reference: product.reference,
     price: String(product.price),
     quantity: String(product.quantity),
-    delivery_time: product.delivery_time ?? '',
     service_offered: product.service_offered ?? false,
     service_name: product.service_name ?? '',
     service_price: product.service_price != null ? String(product.service_price) : '',
+    supplierName: product.supplier ?? '',
+    supplierAddress: product.supplier_address ?? '',
+    supplierPhone: product.supplier_phone ?? '',
   });
+
+  // Clears a field's error the moment the admin edits it, rather than making
+  // them resubmit blind to find out if their fix actually worked.
+  function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((prev) => ({ ...prev, [key]: value }));
+    setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: '' } : prev));
+  }
 
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
+
+    const errors = validate(form);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length > 0) {
+      setError('Fix the highlighted fields before saving.');
+      return;
+    }
+
     setSaving(true);
     setError('');
 
@@ -52,10 +140,12 @@ export function ProductDetailModal({
       reference: form.reference,
       price: Number(form.price),
       quantity: Number(form.quantity),
-      delivery_time: form.delivery_time || null,
       service_offered: form.service_offered,
       service_name: form.service_offered ? form.service_name || null : null,
       service_price: form.service_offered && form.service_price ? Number(form.service_price) : null,
+      supplierName: form.supplierName,
+      supplierAddress: form.supplierAddress || null,
+      supplierPhone: form.supplierPhone || null,
     };
 
     const result = await dispatch(updateProduct({ id: product.id, fields }));
@@ -69,169 +159,196 @@ export function ProductDetailModal({
     }
   };
 
-  const rows: { label: string; value: string }[] = [
-    { label: 'Reference', value: product.reference },
-    { label: 'Name', value: product.name },
-    { label: 'Supplier', value: product.supplier || '—' },
-    { label: 'Price', value: formatKwanza(product.price) },
-    { label: 'Stock', value: String(product.quantity) },
-    { label: 'Delivery Time', value: product.delivery_time || '—' },
-    {
-      label: 'Service',
-      value: product.service_offered && product.service_name ? product.service_name : '—',
-    },
-  ];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-foreground/60" onClick={onClose}>
       <div
-        className="flex w-full max-w-md flex-col rounded-xl bg-white shadow-lg"
+        className="flex h-full w-full max-w-md flex-col bg-background shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-bold text-slate-800">{editing ? 'Edit Product' : product.name}</h2>
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="min-w-0">
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
+              {editing ? 'Edit Product' : 'Product'}
+            </p>
+            <h2 className="mt-1 truncate text-base font-bold text-foreground">{product.name}</h2>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">{product.reference}</p>
+          </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-slate-500 transition-all hover:bg-slate-100"
+            className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {editing ? (
-          <form onSubmit={handleSave} className="space-y-3 px-5 py-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">Name</label>
-              <input
-                className={inputClassName}
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">Reference</label>
-              <input
-                className={inputClassName}
-                value={form.reference}
-                onChange={(e) => setForm({ ...form, reference: e.target.value })}
-                required
-              />
-            </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Price</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  className={inputClassName}
-                  value={form.price}
-                  onChange={(e) => setForm({ ...form, price: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <label className="mb-1 block text-xs font-semibold text-slate-500">Quantity</label>
-                <input
-                  type="number"
-                  min="0"
-                  step="1"
-                  className={inputClassName}
-                  value={form.quantity}
-                  onChange={(e) => setForm({ ...form, quantity: e.target.value })}
-                  required
-                />
-              </div>
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">Delivery Time</label>
-              <input
-                className={inputClassName}
-                placeholder="e.g. Em stock, 2 dias, Sob encomenda"
-                value={form.delivery_time}
-                onChange={(e) => setForm({ ...form, delivery_time: e.target.value })}
-              />
-            </div>
-
-            <div className="flex items-center gap-2 pt-1">
-              <input
-                type="checkbox"
-                id="service_offered"
-                checked={form.service_offered}
-                onChange={(e) => setForm({ ...form, service_offered: e.target.checked })}
-                className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
-              />
-              <label htmlFor="service_offered" className="text-xs font-semibold text-slate-500">
-                Service offered alongside this product
-              </label>
-            </div>
-
-            {form.service_offered && (
-              <div className="grid grid-cols-2 gap-3">
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {editing ? (
+            <form onSubmit={handleSave} className="space-y-6">
+              <Section title="Product">
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Service Name</label>
+                  <label className={labelClassName}>Name</label>
                   <input
-                    className={inputClassName}
-                    value={form.service_name}
-                    onChange={(e) => setForm({ ...form, service_name: e.target.value })}
+                    className={fieldInputClassName(fieldErrors.name)}
+                    value={form.name}
+                    onChange={(e) => updateField('name', e.target.value)}
+                  />
+                  <FieldError message={fieldErrors.name} />
+                </div>
+                <div>
+                  <label className={labelClassName}>SKU / Reference</label>
+                  <input
+                    className={fieldInputClassName(fieldErrors.reference)}
+                    value={form.reference}
+                    onChange={(e) => updateField('reference', e.target.value)}
+                  />
+                  <FieldError message={fieldErrors.reference} />
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClassName}>Price</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      className={fieldInputClassName(fieldErrors.price)}
+                      value={form.price}
+                      onChange={(e) => updateField('price', e.target.value)}
+                    />
+                    <FieldError message={fieldErrors.price} />
+                  </div>
+                  <div>
+                    <label className={labelClassName}>Quantity</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      className={fieldInputClassName(fieldErrors.quantity)}
+                      value={form.quantity}
+                      onChange={(e) => updateField('quantity', e.target.value)}
+                    />
+                    <FieldError message={fieldErrors.quantity} />
+                  </div>
+                </div>
+              </Section>
+
+              <Section title="Supplier">
+                <div>
+                  <label className={labelClassName}>Name</label>
+                  <input
+                    className={fieldInputClassName(fieldErrors.supplierName)}
+                    value={form.supplierName}
+                    onChange={(e) => updateField('supplierName', e.target.value)}
+                  />
+                  <FieldError message={fieldErrors.supplierName} />
+                </div>
+                <div>
+                  <label className={labelClassName}>Address</label>
+                  <input
+                    className={fieldInputClassName()}
+                    value={form.supplierAddress}
+                    onChange={(e) => updateField('supplierAddress', e.target.value)}
                   />
                 </div>
                 <div>
-                  <label className="mb-1 block text-xs font-semibold text-slate-500">Service Price</label>
+                  <label className={labelClassName}>Phone</label>
                   <input
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    className={inputClassName}
-                    value={form.service_price}
-                    onChange={(e) => setForm({ ...form, service_price: e.target.value })}
+                    className={fieldInputClassName()}
+                    placeholder="e.g. 244 923 456 789"
+                    value={form.supplierPhone}
+                    onChange={(e) => updateField('supplierPhone', e.target.value)}
                   />
                 </div>
-              </div>
-            )}
+              </Section>
 
-            {error && <p className="text-xs text-red-600">{error}</p>}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-60"
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <dl className="space-y-3 px-5 py-4">
-              {rows.map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between gap-4">
-                  <dt className="text-xs font-semibold text-slate-500">{label}</dt>
-                  <dd className="text-right text-sm font-semibold text-slate-800">{value}</dd>
+              <Section title="Service">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="service_offered"
+                    checked={form.service_offered}
+                    onChange={(e) => updateField('service_offered', e.target.checked)}
+                    className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+                  />
+                  <label htmlFor="service_offered" className="text-xs font-semibold text-muted-foreground">
+                    Service offered alongside this product
+                  </label>
                 </div>
-              ))}
-            </dl>
-            <div className="flex justify-end border-t border-slate-200 px-5 py-4">
-              <button
-                onClick={() => setEditing(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
+
+                {form.service_offered && (
+                  <div className="grid grid-cols-2 gap-3 pt-1">
+                    <div>
+                      <label className={labelClassName}>Service Name</label>
+                      <input
+                        className={fieldInputClassName(fieldErrors.service_name)}
+                        value={form.service_name}
+                        onChange={(e) => updateField('service_name', e.target.value)}
+                      />
+                      <FieldError message={fieldErrors.service_name} />
+                    </div>
+                    <div>
+                      <label className={labelClassName}>Service Price</label>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        className={fieldInputClassName(fieldErrors.service_price)}
+                        value={form.service_price}
+                        onChange={(e) => updateField('service_price', e.target.value)}
+                      />
+                      <FieldError message={fieldErrors.service_price} />
+                    </div>
+                  </div>
+                )}
+              </Section>
+
+              {error && <p className="text-xs text-destructive">{error}</p>}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              <Section title="Stock &amp; Pricing">
+                <InfoRow label="Price" value={formatKwanza(product.price)} />
+                <InfoRow label="Stock" value={String(product.quantity)} />
+              </Section>
+
+              <Section title="Supplier">
+                <InfoRow label="Name" value={product.supplier || '—'} />
+                <InfoRow label="Address" value={product.supplier_address || '—'} />
+                <InfoRow label="Phone" value={product.supplier_phone || '—'} />
+              </Section>
+
+              <Section title="Service">
+                {product.service_offered && product.service_name ? (
+                  <>
+                    <InfoRow label="Name" value={product.service_name} />
+                    {product.service_price != null && (
+                      <InfoRow label="Price" value={formatKwanza(product.service_price)} />
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No service attached to this product.</p>
+                )}
+              </Section>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

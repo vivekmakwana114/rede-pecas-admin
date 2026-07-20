@@ -66,21 +66,21 @@ export function ProductsGrid({
       header: 'SKU',
       sortable: true,
       sortValue: (row) => row.reference,
-      cell: (row) => <span className="font-mono text-xs font-semibold text-slate-700">{row.reference}</span>,
+      cell: (row) => <span className="font-mono text-xs font-semibold text-foreground">{row.reference}</span>,
     },
     {
       key: 'name',
       header: 'Product',
       sortable: true,
       sortValue: (row) => row.name,
-      cell: (row) => <span className="font-semibold text-slate-800">{row.name}</span>,
+      cell: (row) => <span className="font-semibold text-foreground">{row.name}</span>,
     },
     {
       key: 'supplier',
       header: 'Supplier',
       sortable: true,
       sortValue: (row) => row.supplier ?? '',
-      cell: (row) => <span className="text-xs text-slate-500">{row.supplier || '—'}</span>,
+      cell: (row) => <span className="text-xs text-muted-foreground">{row.supplier || '—'}</span>,
     },
     {
       key: 'price',
@@ -88,7 +88,7 @@ export function ProductsGrid({
       sortable: true,
       align: 'right',
       sortValue: (row) => row.price,
-      cell: (row) => <span className="font-semibold text-slate-800">{formatKwanza(row.price)}</span>,
+      cell: (row) => <span className="font-semibold text-foreground">{formatKwanza(row.price)}</span>,
     },
     {
       key: 'quantity',
@@ -100,10 +100,10 @@ export function ProductsGrid({
         <span
           className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${
             row.quantity === 0
-              ? 'border-red-200 bg-red-50 text-red-700'
+              ? 'border-destructive/30 bg-destructive/10 text-destructive'
               : row.quantity < 5
-                ? 'border-amber-200 bg-amber-50 text-amber-700'
-                : 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                ? 'border-warning/30 bg-warning/10 text-warning'
+                : 'border-success/30 bg-success/10 text-success'
           }`}
         >
           {row.quantity}
@@ -115,12 +115,12 @@ export function ProductsGrid({
       header: 'Service',
       cell: (row) =>
         row.service_offered && row.service_name ? (
-          <span className="text-xs text-slate-500">
+          <span className="text-xs text-muted-foreground">
             {row.service_name}
-            {row.service_price != null && <span className="text-slate-400"> · {formatKwanza(row.service_price)}</span>}
+            {row.service_price != null && <span className="text-muted-foreground"> · {formatKwanza(row.service_price)}</span>}
           </span>
         ) : (
-          <span className="text-xs text-slate-400">—</span>
+          <span className="text-xs text-muted-foreground">—</span>
         ),
     },
     {
@@ -149,16 +149,16 @@ export function ProductsGrid({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-bold text-slate-900">Products</h2>
+        <h2 className="text-lg font-bold text-foreground">Products</h2>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative w-full sm:w-64">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder="Search SKU or product name…"
-              className="w-full rounded-lg border border-input py-2.5 pl-9 pr-4 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-lg border border-input py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
           <button
@@ -178,7 +178,7 @@ export function ProductsGrid({
         getRowId={(row) => String(row.id)}
         emptyMessage={
           status === 'loading' ? (
-            <span className="inline-flex items-center gap-2 text-slate-400">
+            <span className="inline-flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
               Loading products…
             </span>

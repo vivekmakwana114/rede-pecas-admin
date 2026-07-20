@@ -72,16 +72,16 @@ export function Grid<T>({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border/80 bg-background shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200/80 bg-slate-900/[0.03]">
+            <tr className="border-b border-border/80 bg-foreground/[0.03]">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
-                  className={`px-4 py-3 text-2xs font-bold tracking-wider text-slate-900 ${
+                  className={`px-4 py-3 text-2xs font-bold tracking-wider text-foreground ${
                     column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
                   } ${column.headerClassName ?? ''}`}
                 >
@@ -89,7 +89,7 @@ export function Grid<T>({
                     <button
                       type="button"
                       onClick={() => toggleSort(column)}
-                      className="flex w-full items-center justify-between gap-3 transition-colors hover:text-slate-600"
+                      className="flex w-full items-center justify-between gap-3 transition-colors hover:text-muted-foreground"
                     >
                       <span>{column.header}</span>
                       {sortKey === column.key ? (
@@ -99,7 +99,7 @@ export function Grid<T>({
                           <ArrowDown className="h-3 w-3 shrink-0" />
                         )
                       ) : (
-                        <ChevronsUpDown className="h-3 w-3 shrink-0 text-slate-300" />
+                        <ChevronsUpDown className="h-3 w-3 shrink-0 text-muted-foreground/60" />
                       )}
                     </button>
                   ) : (
@@ -109,16 +109,16 @@ export function Grid<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border/60">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-slate-400">
+                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
                   {emptyMessage}
                 </td>
               </tr>
             ) : (
               pageRows.map((row) => (
-                <tr key={getRowId(row)} className={`transition-colors ${rowClassName?.(row) ?? 'hover:bg-slate-50/60'}`}>
+                <tr key={getRowId(row)} className={`transition-colors ${rowClassName?.(row) ?? 'hover:bg-accent/60'}`}>
                   {columns.map((column) => (
                     <td
                       key={column.key}
@@ -137,8 +137,8 @@ export function Grid<T>({
       </div>
 
       {sortedRows.length > 0 && (
-        <div className="flex items-center justify-between border-t border-slate-200/80 px-4 py-3">
-          <p className="text-xs font-medium text-slate-500">
+        <div className="flex items-center justify-between border-t border-border/80 px-4 py-3">
+          <p className="text-xs font-medium text-muted-foreground">
             Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedRows.length)} of{' '}
             {sortedRows.length}
           </p>
@@ -147,19 +147,19 @@ export function Grid<T>({
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"
               aria-label="Previous page"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="px-2 text-xs font-semibold text-slate-600">
+            <span className="px-2 text-xs font-semibold text-muted-foreground">
               Page {currentPage} of {pageCount}
             </span>
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
               disabled={currentPage === pageCount}
-              className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"
               aria-label="Next page"
             >
               <ChevronRight className="h-4 w-4" />

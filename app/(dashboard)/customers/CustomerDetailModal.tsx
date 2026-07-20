@@ -1,37 +1,39 @@
 'use client';
 
 import { useState, type FormEvent } from 'react';
-import { Pencil, X } from 'lucide-react';
+import { X } from 'lucide-react';
+import { formatKwanza } from '@/lib/format';
 import { useAppDispatch } from '@/store/hooks';
 import { updateCustomer, type Customer, type CustomerUpdateFields } from '@/store/customers/customersSlice';
+import { Section, InfoRow } from '@/components/DetailPanel';
+import { VehiclePlate } from './VehiclePlate';
 
-function formatJoinedDate(iso: string): string {
-  const date = new Date(iso);
-  if (Number.isNaN(date.getTime())) return iso;
-  return new Intl.DateTimeFormat('pt-AO', { day: '2-digit', month: 'short', year: 'numeric' }).format(date);
-}
+const baseInputClassName =
+  'w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
 
-const inputClassName =
-  'w-full rounded-lg border border-input px-3 py-2 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
+const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
 
 /**
- * View/edit modal for a single customer — mirrors OrderDetailModal's layout
- * (header, dl rows, footer action) with an inline edit form swapped in on
- * "Edit" rather than a second modal, since there's only ever one row's worth
- * of fields to change. Phone is never editable — it's the backend's primary
- * key (customers.phone), not just a display field.
+ * View/edit side panel for a single customer — slides in from the right,
+ * matching ProductDetailModal/OrderDetailModal's drawer (same header shape,
+ * Section/InfoRow grouping) instead of the centered dl-based dialog this used
+ * to be. Phone is never editable — it's the backend's primary key
+ * (customers.phone), not just a display field, so it stays in the header
+ * subtitle rather than an edit field.
  */
 export function CustomerDetailModal({
   customer,
+  initialEditing = false,
   onClose,
   onSaved,
 }: {
   customer: Customer;
+  initialEditing?: boolean;
   onClose: () => void;
   onSaved: (message: string) => void;
 }) {
   const dispatch = useAppDispatch();
-  const [editing, setEditing] = useState(false);
+  const [editing, setEditing] = useState(initialEditing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [form, setForm] = useState({
@@ -64,109 +66,116 @@ export function CustomerDetailModal({
     }
   };
 
-  const rows: { label: string; value: string }[] = [
-    { label: 'Name', value: customer.name },
-    { label: 'Phone', value: customer.phone },
-    { label: 'NIF', value: customer.nif || '—' },
-    { label: 'Address', value: customer.address || '—' },
-    { label: 'Email', value: customer.email || '—' },
-    { label: 'Joined', value: formatJoinedDate(customer.createdAt) },
-  ];
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex justify-end bg-foreground/60" onClick={onClose}>
       <div
-        className="flex w-full max-w-md flex-col rounded-xl bg-white shadow-lg"
+        className="flex h-full w-full max-w-md flex-col bg-background shadow-xl"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-bold text-slate-800">{editing ? 'Edit Customer' : customer.name}</h2>
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
+          <div className="min-w-0">
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
+              {editing ? 'Edit Customer' : 'Customer'}
+            </p>
+            <h2 className="mt-1 truncate text-base font-bold text-foreground">{customer.name}</h2>
+            <p className="mt-0.5 font-mono text-xs text-muted-foreground">{customer.phone}</p>
+          </div>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-slate-500 transition-all hover:bg-slate-100"
+            className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
           </button>
         </div>
 
-        {editing ? (
-          <form onSubmit={handleSave} className="space-y-3 px-5 py-4">
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">Name</label>
-              <input
-                className={inputClassName}
-                value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
-                required
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">NIF</label>
-              <input
-                className={inputClassName}
-                value={form.nif}
-                onChange={(e) => setForm({ ...form, nif: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">Address</label>
-              <input
-                className={inputClassName}
-                value={form.address}
-                onChange={(e) => setForm({ ...form, address: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="mb-1 block text-xs font-semibold text-slate-500">Email</label>
-              <input
-                type="email"
-                className={inputClassName}
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-              />
-            </div>
-
-            {error && <p className="text-xs text-red-600">{error}</p>}
-
-            <div className="flex justify-end gap-2 pt-2">
-              <button
-                type="button"
-                onClick={() => setEditing(false)}
-                className="rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-60"
-              >
-                {saving ? 'Saving…' : 'Save'}
-              </button>
-            </div>
-          </form>
-        ) : (
-          <>
-            <dl className="space-y-3 px-5 py-4">
-              {rows.map(({ label, value }) => (
-                <div key={label} className="flex items-center justify-between gap-4">
-                  <dt className="text-xs font-semibold text-slate-500">{label}</dt>
-                  <dd className="text-right text-sm font-semibold text-slate-800">{value}</dd>
+        <div className="flex-1 overflow-y-auto px-6 py-6">
+          {editing ? (
+            <form onSubmit={handleSave} className="space-y-6">
+              <Section title="Profile">
+                <div>
+                  <label className={labelClassName}>Name</label>
+                  <input
+                    className={baseInputClassName}
+                    value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    required
+                  />
                 </div>
-              ))}
-            </dl>
-            <div className="flex justify-end border-t border-slate-200 px-5 py-4">
-              <button
-                onClick={() => setEditing(true)}
-                className="flex items-center gap-1.5 rounded-lg border border-slate-200 px-3 py-1.5 text-xs font-semibold text-slate-600 transition-all hover:bg-slate-50"
-              >
-                <Pencil className="h-3.5 w-3.5" />
-                Edit
-              </button>
+                <div>
+                  <label className={labelClassName}>NIF</label>
+                  <input
+                    className={baseInputClassName}
+                    value={form.nif}
+                    onChange={(e) => setForm({ ...form, nif: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClassName}>Address</label>
+                  <input
+                    className={baseInputClassName}
+                    value={form.address}
+                    onChange={(e) => setForm({ ...form, address: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className={labelClassName}>Email</label>
+                  <input
+                    type="email"
+                    className={baseInputClassName}
+                    value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  />
+                </div>
+              </Section>
+
+              {error && <p className="text-xs text-destructive">{error}</p>}
+
+              <div className="flex justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setEditing(false)}
+                  className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-60"
+                >
+                  {saving ? 'Saving…' : 'Save'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <div className="space-y-6">
+              <Section title="Profile">
+                <InfoRow label="NIF" value={customer.nif || '—'} />
+                <InfoRow label="Address" value={customer.address || '—'} />
+                <InfoRow label="Email" value={customer.email || '—'} />
+                <InfoRow label="Joined" value={customer.createdAt} />
+              </Section>
+
+              <Section title="Vehicles">
+                {customer.vehicles.length > 0 ? (
+                  <div className="space-y-2">
+                    {customer.vehicles.map((vehicle, index) => (
+                      <VehiclePlate key={`${vehicle.plate}-${index}`} vehicle={vehicle} />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-muted-foreground">No vehicles on file.</p>
+                )}
+              </Section>
+
+              <Section title="Activity">
+                <InfoRow label="Orders" value={String(customer.ordersCount)} />
+                <InfoRow label="Total Spent" value={formatKwanza(customer.totalSpent)} />
+              </Section>
             </div>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </div>
   );

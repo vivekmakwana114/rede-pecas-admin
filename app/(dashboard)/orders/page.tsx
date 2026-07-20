@@ -23,18 +23,18 @@ import type { FilterValue, OrderRow, OrderStatus } from './types';
 // stockConfirmation) — only the visible "Payment Status" column's label
 // changed to reflect the payment decision specifically (see paymentStatusOf below).
 const ROW_TINT: Record<OrderStatus, string> = {
-  pending: 'bg-slate-50 hover:bg-slate-100/80',
-  approved: 'bg-emerald-50 hover:bg-emerald-100/70',
-  rejected: 'bg-red-50 hover:bg-red-100/70',
-  stockConfirmation: 'bg-sky-50 hover:bg-sky-100/70',
+  pending: 'bg-muted hover:bg-accent/80',
+  approved: 'bg-success/10 hover:bg-success/15',
+  rejected: 'bg-destructive/10 hover:bg-destructive/15',
+  stockConfirmation: 'bg-info/10 hover:bg-info/15',
 };
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected';
 
 const PAYMENT_STATUS_STYLES: Record<PaymentStatus, { label: string; badge: string }> = {
-  pending: { label: 'Pending', badge: 'bg-amber-50 text-amber-700 border-amber-200' },
-  approved: { label: 'Approved', badge: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  rejected: { label: 'Rejected', badge: 'bg-red-50 text-red-700 border-red-200' },
+  pending: { label: 'Pending', badge: 'bg-warning/10 text-warning border-warning/30' },
+  approved: { label: 'Approved', badge: 'bg-success/10 text-success border-success/30' },
+  rejected: { label: 'Rejected', badge: 'bg-destructive/10 text-destructive border-destructive/30' },
 };
 
 // Nothing's been decided yet for a still-pending order, whether it's waiting
@@ -228,14 +228,14 @@ export default function OrdersPage() {
       header: 'Order',
       sortable: true,
       sortValue: (row) => row.number,
-      cell: (row) => <span className="font-mono text-xs font-semibold text-slate-700">{row.number}</span>,
+      cell: (row) => <span className="font-mono text-xs font-semibold text-foreground">{row.number}</span>,
     },
     {
       key: 'customer',
       header: 'Customer',
       sortable: true,
       sortValue: (row) => row.customer,
-      cell: (row) => <span className="font-mono text-xs text-slate-700">{row.customer}</span>,
+      cell: (row) => <span className="font-mono text-xs text-foreground">{row.customer}</span>,
     },
     {
       key: 'part',
@@ -244,9 +244,9 @@ export default function OrdersPage() {
       sortValue: (row) => row.part,
       cell: (row) => (
         <div>
-          <span className="font-semibold text-slate-800">{row.part}</span>
+          <span className="font-semibold text-foreground">{row.part}</span>
           {row.service && (
-            <div className="text-2xs text-slate-400">
+            <div className="text-2xs text-muted-foreground">
               + {row.service.name}
               {row.service.price != null && <> · {formatKwanza(row.service.price)}</>}
             </div>
@@ -260,7 +260,7 @@ export default function OrdersPage() {
       sortable: true,
       align: 'right',
       sortValue: (row) => row.price,
-      cell: (row) => <span className="font-semibold text-slate-800">{formatKwanza(row.price)}</span>,
+      cell: (row) => <span className="font-semibold text-foreground">{formatKwanza(row.price)}</span>,
     },
     {
       key: 'stockConfirmation',
@@ -268,17 +268,17 @@ export default function OrdersPage() {
       align: 'center',
       cell: (row) => {
         if (row.status !== 'stockConfirmation') {
-          return <span className="text-xs text-slate-500">Qty: {row.quantity}</span>;
+          return <span className="text-xs text-muted-foreground">Qty: {row.quantity}</span>;
         }
         return (
           <div className="flex flex-col items-center gap-1">
-            <span className="text-2xs text-slate-500">Qty: {row.quantity}</span>
+            <span className="text-2xs text-muted-foreground">Qty: {row.quantity}</span>
             <div className="flex justify-center gap-2">
               <button
                 onClick={() => handleConfirmStock(row.number, false)}
                 aria-label={`Mark order ${row.number} stock-unavailable`}
                 title="Mark Unavailable"
-                className="rounded-lg border border-red-200 p-1.5 text-red-600 transition-all hover:bg-red-50"
+                className="rounded-lg border border-destructive/30 p-1.5 text-destructive transition-all hover:bg-destructive/10"
               >
                 <PackageX className="h-4 w-4" />
               </button>
@@ -286,7 +286,7 @@ export default function OrdersPage() {
                 onClick={() => handleConfirmStock(row.number, true)}
                 aria-label={`Confirm stock for order ${row.number}`}
                 title="Confirm Stock"
-                className="rounded-lg bg-emerald-600 p-1.5 text-white shadow-sm transition-all hover:bg-emerald-700"
+                className="rounded-lg bg-success p-1.5 text-success-foreground shadow-sm transition-all hover:bg-success/90"
               >
                 <Check className="h-4 w-4" />
               </button>
@@ -309,7 +309,7 @@ export default function OrdersPage() {
             {STOCK_STATUS_STYLES[row.stockStatus].label}
           </span>
         ) : (
-          <span className="text-2xs text-slate-300">—</span>
+          <span className="text-2xs text-muted-foreground">—</span>
         ),
     },
     {
@@ -318,12 +318,12 @@ export default function OrdersPage() {
       align: 'center',
       cell: (row) => {
         if (!row.hasProof && !row.actionable && !row.verifying) {
-          return <span className="text-2xs text-slate-300">—</span>;
+          return <span className="text-2xs text-muted-foreground">—</span>;
         }
         if (row.verifying) {
           return (
-            <span className="inline-flex items-center gap-1 rounded-full border border-sky-200 bg-sky-50 px-2 py-1 text-2xs font-bold text-sky-700">
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-sky-500" />
+            <span className="inline-flex items-center gap-1 rounded-full border border-info/30 bg-info/10 px-2 py-1 text-2xs font-bold text-info">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-info" />
               Verifying…
             </span>
           );
@@ -335,7 +335,7 @@ export default function OrdersPage() {
                 onClick={() => setProofOrder(row)}
                 aria-label={`View payment proof for order ${row.number}`}
                 title="View Proof"
-                className="rounded-lg border border-slate-200 p-1.5 text-slate-600 transition-all hover:bg-slate-50"
+                className="rounded-lg border border-border p-1.5 text-muted-foreground transition-all hover:bg-accent"
               >
                 <Eye className="h-4 w-4" />
               </button>
@@ -346,7 +346,7 @@ export default function OrdersPage() {
                   onClick={() => handleReject(row.number)}
                   aria-label={`Reject order ${row.number}`}
                   title="Reject"
-                  className="rounded-lg border border-red-200 p-1 text-red-600 transition-all hover:bg-red-50"
+                  className="rounded-lg border border-destructive/30 p-1 text-destructive transition-all hover:bg-destructive/10"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
@@ -354,7 +354,7 @@ export default function OrdersPage() {
                   onClick={() => handleApproveClick(row.number)}
                   aria-label={`Approve order ${row.number}`}
                   title="Approve"
-                  className="rounded-lg bg-emerald-600 p-1 text-white shadow-sm transition-all hover:bg-emerald-700"
+                  className="rounded-lg bg-success p-1 text-success-foreground shadow-sm transition-all hover:bg-success/90"
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
@@ -386,7 +386,7 @@ export default function OrdersPage() {
       header: 'Date & Time',
       sortable: true,
       sortValue: (row) => row.sortTime,
-      cell: (row) => <span className="text-xs text-slate-500">{row.time}</span>,
+      cell: (row) => <span className="text-xs text-muted-foreground">{row.time}</span>,
     },
     {
       key: 'actions',

@@ -45,17 +45,17 @@ export function PaymentProofModal({
   }, [number]);
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
       <div
-        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl bg-white shadow-lg"
+        className="flex max-h-[85vh] w-full max-w-2xl flex-col rounded-xl bg-background shadow-lg"
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-slate-200 px-5 py-4">
-          <h2 className="text-sm font-bold text-slate-800">Payment Proof — Order #{number}</h2>
+        <div className="flex items-center justify-between border-b border-border px-5 py-4">
+          <h2 className="text-sm font-bold text-foreground">Payment Proof — Order #{number}</h2>
           <button
             onClick={onClose}
             aria-label="Close"
-            className="rounded-lg p-1.5 text-slate-500 transition-all hover:bg-slate-100"
+            className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
           </button>
@@ -63,14 +63,14 @@ export function PaymentProofModal({
 
         <div className="flex flex-1 items-center justify-center overflow-auto p-5">
           {error ? (
-            <div className="flex flex-col items-center gap-2 text-red-600">
+            <div className="flex flex-col items-center gap-2 text-destructive">
               <TriangleAlert className="h-8 w-8" />
               <p className="text-sm font-semibold">{error}</p>
             </div>
           ) : !objectUrl ? (
-            <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+            <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           ) : mediaType === 'document' ? (
-            <iframe src={objectUrl} title="Payment proof PDF" className="h-[65vh] w-full rounded-lg border border-slate-200" />
+            <iframe src={objectUrl} title="Payment proof PDF" className="h-[65vh] w-full rounded-lg border border-border" />
           ) : (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={objectUrl} alt="Payment proof" className="max-h-[65vh] w-full rounded-lg object-contain" />
@@ -78,17 +78,17 @@ export function PaymentProofModal({
         </div>
 
         {reviewable && (
-          <div className="flex justify-end gap-2 border-t border-slate-200 px-5 py-4">
+          <div className="flex justify-end gap-2 border-t border-border px-5 py-4">
             <button
               onClick={() => onReject(number)}
-              className="flex items-center gap-1.5 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-semibold text-red-600 transition-all hover:bg-red-50"
+              className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive transition-all hover:bg-destructive/10"
             >
               <X className="h-4 w-4" />
               Reject
             </button>
             <button
               onClick={() => onApprove(number)}
-              className="flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all hover:bg-emerald-700"
+              className="flex items-center gap-1.5 rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground shadow-sm transition-all hover:bg-success/90"
             >
               <Check className="h-4 w-4" />
               Approve

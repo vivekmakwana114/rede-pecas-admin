@@ -1,31 +1,35 @@
 import type { UploadItemPayload } from '@/store/inventory/inventoryService';
 
 type RequiredField = 'reference' | 'name' | 'price' | 'quantity' | 'supplier';
-type OptionalField = 'service' | 'serviceName' | 'servicePrice';
+type OptionalField = 'supplierAddress' | 'supplierPhone' | 'service' | 'serviceName' | 'servicePrice';
 
-// Supplier spreadsheets vary — Portuguese/English header aliases are kept.
+// Supplier spreadsheets vary — Portuguese/English header aliases are kept,
+// alongside the older snake_case column names still accepted server-side.
 const COLUMN_ALIASES: Record<RequiredField, string[]> = {
-  reference: ['reference', 'Reference', 'referencia', 'Referencia', 'SKU', 'CodArtigo', 'codigo', 'Código'],
-  name: ['name', 'Name', 'nome', 'Nome', 'Descricao', 'Descrição', 'artigo', 'Artigo'],
+  reference: ['SKU', 'sku', 'reference', 'Reference', 'referencia', 'Referencia', 'CodArtigo', 'codigo', 'Código'],
+  name: ['Product', 'product', 'name', 'Name', 'nome', 'Nome', 'Descricao', 'Descrição', 'artigo', 'Artigo'],
   price: ['price', 'Price', 'preco', 'Preco', 'Preço', 'PVP', 'PVP1'],
   quantity: ['quantity', 'Quantity', 'quantidade', 'Quantidade', 'stock', 'Stock', 'StkActual'],
-  supplier: ['supplier', 'Supplier', 'fornecedor', 'Fornecedor'],
+  supplier: ['Supplier Name', 'supplier_name', 'supplier', 'Supplier', 'fornecedor', 'Fornecedor'],
 };
 
-// Not required columns — a file with no service offering at all simply won't
-// have these headers, so they're never checked against missingColumns.
+// Not required columns — a file with no service offering (or no supplier
+// address/phone) at all simply won't have these headers, so they're never
+// checked against missingColumns.
 const OPTIONAL_COLUMN_ALIASES: Record<OptionalField, string[]> = {
+  supplierAddress: ['Supplier Address', 'supplier_address', 'supplier_province', 'endereco_fornecedor'],
+  supplierPhone: ['Supplier Phone', 'supplier_phone', 'telefone_fornecedor'],
   service: ['service', 'Service', 'servico', 'Servico', 'Serviço'],
-  serviceName: ['service_name', 'Service Name', 'nome_servico', 'Nome do Serviço', 'nome_serviço'],
-  servicePrice: ['service_price', 'Service Price', 'preco_servico', 'Preço do Serviço', 'preco_serviço'],
+  serviceName: ['Service Name', 'service_name', 'nome_servico', 'Nome do Serviço', 'nome_serviço'],
+  servicePrice: ['Service Price', 'service_price', 'preco_servico', 'Preço do Serviço', 'preco_serviço'],
 };
 
 const FIELD_LABELS: Record<RequiredField, string> = {
-  reference: 'Reference / SKU',
-  name: 'Name / Description',
+  reference: 'SKU',
+  name: 'Product',
   price: 'Price',
   quantity: 'Quantity / Stock',
-  supplier: 'Supplier',
+  supplier: 'Supplier Name',
 };
 
 const YES_VALUES = new Set(['yes', 'sim', 'true', '1']);
@@ -74,6 +78,8 @@ export function parseWorkbookRows(rawRows: Record<string, unknown>[], headerRow:
     const price = parseFloat(String(pick(row, COLUMN_ALIASES.price) ?? '0'));
     const quantity = parseInt(String(pick(row, COLUMN_ALIASES.quantity) ?? '0'), 10);
     const supplier = String(pick(row, COLUMN_ALIASES.supplier) ?? '').trim();
+    const supplierAddress = String(pick(row, OPTIONAL_COLUMN_ALIASES.supplierAddress) ?? '').trim();
+    const supplierPhone = String(pick(row, OPTIONAL_COLUMN_ALIASES.supplierPhone) ?? '').trim();
 
     // Preview-only — shown when present, but not validated (missing/invalid
     // service data is a server-side rejection, not something checked here).
@@ -88,6 +94,8 @@ export function parseWorkbookRows(rawRows: Record<string, unknown>[], headerRow:
       price: Number.isNaN(price) ? 0 : price,
       quantity: Number.isNaN(quantity) ? 0 : quantity,
       supplier,
+      ...(supplierAddress ? { supplierAddress } : {}),
+      ...(supplierPhone ? { supplierPhone } : {}),
       ...(serviceName ? { serviceName } : {}),
       ...(servicePrice !== undefined && !Number.isNaN(servicePrice) ? { servicePrice } : {}),
     });

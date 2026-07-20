@@ -33,29 +33,29 @@ export function UserMenu() {
     <div className="relative" ref={menuRef}>
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+        className="flex items-center gap-2 rounded-lg px-2 py-1.5 text-sm font-semibold text-muted-foreground hover:bg-accent"
       >
         <span className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary">
           <UserRound className="h-4 w-4" />
         </span>
         <span className="hidden sm:inline">{admin?.name ?? 'Admin'}</span>
-        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+        <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${open ? 'rotate-180' : ''}`} />
       </button>
 
       {open && (
-        <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-lg border border-slate-200 bg-white py-1 shadow-lg">
-          <button className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-500 cursor-not-allowed">
+        <div className="absolute right-0 z-20 mt-2 w-52 overflow-hidden rounded-lg border border-border bg-background py-1 shadow-lg">
+          <button className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-muted-foreground cursor-not-allowed">
             <UserRound className="h-4 w-4" />
             Profile
           </button>
-          <button className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-slate-500 cursor-not-allowed">
+          <button className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm text-muted-foreground cursor-not-allowed">
             <Settings className="h-4 w-4" />
             Account settings
           </button>
-          <div className="my-1 border-t border-slate-100" />
+          <div className="my-1 border-t border-border" />
           <button
             onClick={handleLogout}
-            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+            className="flex w-full items-center gap-2.5 px-4 py-2 text-left text-sm font-semibold text-destructive hover:bg-destructive/10"
           >
             <LogOut className="h-4 w-4" />
             Log out

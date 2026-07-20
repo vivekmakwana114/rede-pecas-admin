@@ -35,32 +35,42 @@ const ITEM_COLUMNS: GridColumn<UploadItemPayload>[] = [
   {
     key: 'reference',
     header: 'SKU',
-    cell: (row) => <span className="font-mono text-xs font-semibold text-slate-700">{row.reference}</span>,
+    cell: (row) => <span className="font-mono text-xs font-semibold text-foreground">{row.reference}</span>,
   },
-  { key: 'name', header: 'Product', cell: (row) => <span className="font-medium text-slate-800">{row.name}</span> },
+  { key: 'name', header: 'Product', cell: (row) => <span className="font-medium text-foreground">{row.name}</span> },
   {
     key: 'supplier',
-    header: 'Supplier',
-    cell: (row) => <span className="text-slate-500">{row.supplier || '—'}</span>,
+    header: 'Supplier Name',
+    cell: (row) => <span className="text-muted-foreground">{row.supplier || '—'}</span>,
+  },
+  {
+    key: 'supplierAddress',
+    header: 'Supplier Address',
+    cell: (row) => <span className="text-muted-foreground">{row.supplierAddress || '—'}</span>,
+  },
+  {
+    key: 'supplierPhone',
+    header: 'Supplier Phone',
+    cell: (row) => <span className="text-muted-foreground">{row.supplierPhone || '—'}</span>,
   },
   {
     key: 'price',
     header: 'Price',
     align: 'right',
-    cell: (row) => <span className="text-slate-700">{formatKwanza(row.price)}</span>,
+    cell: (row) => <span className="text-foreground">{formatKwanza(row.price)}</span>,
   },
-  { key: 'quantity', header: 'Stock', align: 'right', cell: (row) => <span className="text-slate-700">{row.quantity}</span> },
+  { key: 'quantity', header: 'Stock', align: 'right', cell: (row) => <span className="text-foreground">{row.quantity}</span> },
   {
     key: 'service',
     header: 'Service',
     cell: (row) =>
       row.serviceName ? (
-        <span className="text-slate-700">
+        <span className="text-foreground">
           {row.serviceName}
-          {row.servicePrice !== undefined && <span className="text-slate-400"> · {formatKwanza(row.servicePrice)}</span>}
+          {row.servicePrice !== undefined && <span className="text-muted-foreground"> · {formatKwanza(row.servicePrice)}</span>}
         </span>
       ) : (
-        <span className="text-slate-400">—</span>
+        <span className="text-muted-foreground">—</span>
       ),
   },
 ];
@@ -175,29 +185,29 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
   const currentStep = stage === 'idle' || stage === 'invalid' ? 0 : upload.status === 'idle' || upload.status === 'failed' ? 1 : 2;
 
   return (
-    <div className="fixed inset-0 z-40 flex justify-end bg-slate-900/60" onClick={onClose}>
-      <div className="flex h-full w-full max-w-lg flex-col bg-white shadow-xl" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-start justify-between gap-4 border-b border-slate-200 px-6 py-5">
+    <div className="fixed inset-0 z-40 flex justify-end bg-foreground/60" onClick={onClose}>
+      <div className="flex h-full w-full max-w-lg flex-col bg-background shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-slate-900">Import Inventory</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">Import Inventory</h2>
             <ol className="mt-3 flex items-center gap-2">
               {STEPS.map((label, index) => (
                 <li key={label} className="flex items-center gap-2">
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full text-2xs font-bold ${
                       index < currentStep
-                        ? 'bg-emerald-600 text-white'
+                        ? 'bg-success text-success-foreground'
                         : index === currentStep
-                          ? 'bg-primary text-white'
-                          : 'bg-slate-100 text-slate-400'
+                          ? 'bg-primary text-primary-foreground'
+                          : 'bg-muted text-muted-foreground'
                     }`}
                   >
                     {index < currentStep ? <Check className="h-3 w-3" /> : index + 1}
                   </span>
-                  <span className={`hidden text-xs font-semibold sm:inline ${index <= currentStep ? 'text-slate-700' : 'text-slate-400'}`}>
+                  <span className={`hidden text-xs font-semibold sm:inline ${index <= currentStep ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {label}
                   </span>
-                  {index < STEPS.length - 1 && <span className="h-px w-4 bg-slate-200" />}
+                  {index < STEPS.length - 1 && <span className="h-px w-4 bg-border" />}
                 </li>
               ))}
             </ol>
@@ -206,7 +216,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
             type="button"
             onClick={onClose}
             aria-label="Close"
-            className="shrink-0 rounded-lg p-1.5 text-slate-500 transition-all hover:bg-slate-100"
+            className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
           </button>
@@ -223,14 +233,14 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
               onDrop={handleDrop}
               onClick={() => inputRef.current?.click()}
               className={`cursor-pointer rounded-lg border-2 border-dashed p-8 text-center transition-all ${
-                dragActive ? 'border-primary bg-primary/5' : 'border-slate-200 hover:bg-slate-50/50'
+                dragActive ? 'border-primary bg-primary/5' : 'border-border hover:bg-accent/50'
               }`}
             >
               <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFileInput} className="hidden" />
               <div className="flex flex-col items-center">
-                <UploadCloud className="mb-3 h-10 w-10 text-slate-400" />
-                <p className="text-sm font-bold text-slate-700">Drop a CSV or Excel file, or click to browse</p>
-                <p className="mt-1 text-xs text-slate-400">Needs Reference, Name, Supplier, Price and Quantity columns</p>
+                <UploadCloud className="mb-3 h-10 w-10 text-muted-foreground" />
+                <p className="text-sm font-bold text-foreground">Drop a CSV or Excel file, or click to browse</p>
+                <p className="mt-1 text-xs text-muted-foreground">Needs SKU, Product, Price, Quantity and Supplier Name columns</p>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -238,7 +248,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
                     handleDownloadTemplate();
                   }}
                   disabled={templateDownloading}
-                  className="mt-4 flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 shadow-sm transition-all hover:bg-slate-50 disabled:opacity-60"
+                  className="mt-4 flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm transition-all hover:bg-accent disabled:opacity-60"
                 >
                   {templateDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
                   Download template
@@ -248,16 +258,16 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
           )}
 
           {stage === 'invalid' && parseError && (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 p-5">
+            <div className="mt-4 rounded-lg border border-destructive/30 bg-destructive/10 p-5">
               <div className="flex items-start gap-3">
-                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-red-600" />
+                <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
                 <div className="flex-1">
-                  <p className="text-sm font-bold text-red-800">
+                  <p className="text-sm font-bold text-destructive">
                     {parseError.type === 'missing-columns' && "Couldn't find some required columns"}
                     {parseError.type === 'empty' && 'No usable rows found'}
                     {parseError.type === 'unreadable' && "Couldn't read this file"}
                   </p>
-                  <p className="mt-1 text-xs text-red-700">
+                  <p className="mt-1 text-xs text-destructive">
                     {parseError.type === 'missing-columns' && (
                       <>
                         {fileName} is missing: <span className="font-semibold">{parseError.missingColumns.join(', ')}</span>. Add
@@ -273,7 +283,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
               <button
                 type="button"
                 onClick={reset}
-                className="mt-4 rounded-lg border border-red-200 px-3 py-1.5 text-xs font-bold text-red-700 transition-all hover:bg-red-100"
+                className="mt-4 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-bold text-destructive transition-all hover:bg-destructive/10"
               >
                 Try another file
               </button>
@@ -283,60 +293,56 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
           {stage === 'ready' && parseResult && (
             <div className="space-y-4">
               {upload.status === 'succeeded' ? (
-                <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-4">
+                <div className="rounded-lg border border-success/30 bg-success/10 p-4">
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="h-5 w-5 text-emerald-600" />
-                    <p className="text-sm font-bold text-emerald-800">Import complete</p>
+                    <CheckCircle2 className="h-5 w-5 text-success" />
+                    <p className="text-sm font-bold text-success">Import complete</p>
                   </div>
                   {upload.result && (
-                    <div className="mt-3 grid grid-cols-3 gap-3 text-center">
+                    <div className="mt-3 grid grid-cols-2 gap-3 text-center">
                       <div>
-                        <p className="text-lg font-bold text-emerald-700">{upload.result.inserted}</p>
-                        <p className="text-2xs font-semibold text-emerald-600">Added</p>
+                        <p className="text-lg font-bold text-success">{upload.result.inserted}</p>
+                        <p className="text-2xs font-semibold text-success">Added</p>
                       </div>
                       <div>
-                        <p className="text-lg font-bold text-emerald-700">{upload.result.updated}</p>
-                        <p className="text-2xs font-semibold text-emerald-600">Updated</p>
-                      </div>
-                      <div>
-                        <p className="text-lg font-bold text-emerald-700">{upload.result.deactivated}</p>
-                        <p className="text-2xs font-semibold text-emerald-600">Deactivated</p>
+                        <p className="text-lg font-bold text-success">{upload.result.updated}</p>
+                        <p className="text-2xs font-semibold text-success">Updated</p>
                       </div>
                     </div>
                   )}
                 </div>
               ) : (
-                <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="flex items-center justify-between rounded-lg border border-border bg-muted p-3">
                   <div className="flex items-center gap-2">
-                    <FileSpreadsheet className="h-4 w-4 text-slate-500" />
-                    <span className="text-xs font-semibold text-slate-700">{fileName}</span>
+                    <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-xs font-semibold text-foreground">{fileName}</span>
                   </div>
                   <button
                     type="button"
                     onClick={reset}
                     disabled={upload.status === 'loading'}
                     aria-label="Remove file"
-                    className="rounded-md p-1 text-slate-400 transition-colors hover:bg-slate-200 hover:text-slate-700 disabled:opacity-40"
+                    className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
                   >
                     <X className="h-4 w-4" />
                   </button>
                 </div>
               )}
 
-              <p className="text-xs font-semibold text-slate-500">
+              <p className="text-xs font-semibold text-muted-foreground">
                 {upload.status === 'succeeded' ? 'Imported items' : 'Ready to import'} · {parseResult.items.length} product
                 {parseResult.items.length === 1 ? '' : 's'}
                 {parseResult.skippedCount > 0 && upload.status !== 'succeeded' && (
-                  <span className="text-amber-600"> · {parseResult.skippedCount} row{parseResult.skippedCount === 1 ? '' : 's'} skipped (missing reference or name)</span>
+                  <span className="text-warning"> · {parseResult.skippedCount} row{parseResult.skippedCount === 1 ? '' : 's'} skipped (missing reference or name)</span>
                 )}
               </p>
 
               <Grid columns={ITEM_COLUMNS} rows={parseResult.items} getRowId={(row) => row.reference} pageSize={5} />
 
               {upload.status === 'failed' && (
-                <div className="flex items-center gap-2 rounded-lg border border-red-200 bg-red-50 p-3">
-                  <AlertTriangle className="h-4 w-4 shrink-0 text-red-600" />
-                  <p className="text-xs font-semibold text-red-700">{upload.error}</p>
+                <div className="flex items-center gap-2 rounded-lg border border-destructive/30 bg-destructive/10 p-3">
+                  <AlertTriangle className="h-4 w-4 shrink-0 text-destructive" />
+                  <p className="text-xs font-semibold text-destructive">{upload.error}</p>
                 </div>
               )}
 
