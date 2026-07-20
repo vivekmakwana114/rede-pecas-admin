@@ -2,17 +2,7 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  /* Brand accent colors */
-  --color-primary1: #0071e3; 
-  --color-secondary1: #7c3aed;
-  --color-tertiary1: #e09112;
-  --color-quaternary1: #d1495b;
-  --border-admin: #e8e8e8;
-  --color-back-label: #f3f3ff;
-
-  --color-dull-text: #747c84;
   --color-placeholder-color: #c3c9cf;
-
   --default-font-family: "Poppins";
 }
 
@@ -38,6 +28,12 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-success-foreground: var(--success-foreground);
+  --color-success: var(--success);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-warning: var(--warning);
+  --color-info-foreground: var(--info-foreground);
+  --color-info: var(--info);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -73,6 +69,15 @@
   --accent: oklch(0.97 0 0);
   --accent-foreground: oklch(0.205 0 0);
   --destructive: oklch(0.577 0.245 27.325);
+  /* Status colors — the semantic names every component should reach for
+     instead of a raw palette shade (bg-emerald-600 -> bg-success, etc.),
+     same pattern as --primary/--destructive above. */
+  --success: oklch(0.596 0.145 163.225);
+  --success-foreground: oklch(0.985 0 0);
+  --warning: oklch(0.666 0.179 58.318);
+  --warning-foreground: oklch(0.205 0 0);
+  --info: oklch(0.588 0.158 241.966);
+  --info-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: #0071e3;
@@ -107,6 +112,12 @@
   --accent: oklch(0.269 0 0);
   --accent-foreground: oklch(0.985 0 0);
   --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.696 0.17 162.48);
+  --success-foreground: oklch(0.145 0 0);
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-foreground: oklch(0.145 0 0);
+  --info: oklch(0.685 0.169 237.323);
+  --info-foreground: oklch(0.145 0 0);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
   --ring: #4c9aff;

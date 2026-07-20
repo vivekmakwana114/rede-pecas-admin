@@ -8,9 +8,10 @@ export interface Product {
   name: string;
   price: number;
   quantity: number;
-  delivery_time?: string | null;
   supplier?: string;
   supplier_id?: number;
+  supplier_address?: string | null;
+  supplier_phone?: string | null;
   service_offered?: boolean;
   service_name?: string | null;
   service_price?: number | null;
@@ -21,16 +22,17 @@ export interface ProductUpdateFields {
   reference?: string;
   price?: number;
   quantity?: number;
-  delivery_time?: string | null;
   service_offered?: boolean;
   service_name?: string | null;
   service_price?: number | null;
+  supplierName?: string;
+  supplierAddress?: string | null;
+  supplierPhone?: string | null;
 }
 
 export interface UploadResult {
   inserted: number;
   updated: number;
-  deactivated: number;
 }
 
 interface InventoryState {

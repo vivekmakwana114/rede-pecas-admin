@@ -33,18 +33,18 @@ export function ForgotPasswordForm() {
   return (
     <div>
       <BrandMark />
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">Forgot password?</h1>
-      <p className="mt-1 text-sm text-slate-500">
+      <h1 className="mt-6 text-2xl font-bold text-foreground">Forgot password?</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
         No worries — enter your WhatsApp number and we&apos;ll send you a verification code.
       </p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <div>
-          <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="phone" className="mb-1.5 block text-sm font-medium text-foreground">
             WhatsApp number
           </label>
           <div className="relative">
-            <MessageCircle className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <MessageCircle className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               id="phone"
               type="tel"
@@ -52,7 +52,7 @@ export function ForgotPasswordForm() {
               onChange={(e) => setPhone(e.target.value)}
               placeholder="+244 9XX XXX XXX"
               autoComplete="tel"
-              className="w-full rounded-lg border border-input py-2.5 pr-4 pl-10 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-lg border border-input py-2.5 pr-4 pl-10 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
               required
             />
           </div>
@@ -76,7 +76,7 @@ export function ForgotPasswordForm() {
 
       <Link
         href="/login"
-        className="mt-6 flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700"
+        className="mt-6 flex items-center justify-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to log in

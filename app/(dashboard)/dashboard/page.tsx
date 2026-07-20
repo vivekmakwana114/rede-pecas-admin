@@ -44,13 +44,13 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-slate-900">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-slate-500">Platform totals across customers, inventory and orders.</p>
+          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">Platform totals across customers, inventory and orders.</p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-emerald-600">
+        <div className="flex items-center gap-1.5 text-xs font-semibold text-success">
           <span className="relative flex h-2 w-2">
-            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-500" />
+            <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
           </span>
           Live
         </div>

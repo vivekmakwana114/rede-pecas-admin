@@ -12,6 +12,8 @@ export interface UploadItemPayload {
   price: number;
   quantity: number;
   supplier: string;
+  supplierAddress?: string;
+  supplierPhone?: string;
   serviceName?: string;
   servicePrice?: number;
 }
@@ -31,10 +33,12 @@ export const updateProduct = (
     reference?: string;
     price?: number;
     quantity?: number;
-    delivery_time?: string | null;
     service_offered?: boolean;
     service_name?: string | null;
     service_price?: number | null;
+    supplierName?: string;
+    supplierAddress?: string | null;
+    supplierPhone?: string | null;
   },
 ) => {
   return api.patch(`/admin/products/${id}`, fields);

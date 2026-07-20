@@ -44,12 +44,12 @@ export function LoginForm() {
   return (
     <div>
       <BrandMark />
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">Welcome back</h1>
-      <p className="mt-1 text-sm text-slate-500">Sign in to manage Rede Peças orders and inventory.</p>
+      <h1 className="mt-6 text-2xl font-bold text-foreground">Welcome back</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Sign in to manage Rede Peças orders and inventory.</p>
 
       <form onSubmit={handleLogin} className="mt-8 space-y-5">
         <div>
-          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="email" className="mb-1.5 block text-sm font-medium text-foreground">
             Email
           </label>
           <input
@@ -59,13 +59,13 @@ export function LoginForm() {
             onChange={(e) => setEmail(e.target.value)}
             placeholder="admin@redepecas.co.ao"
             autoComplete="email"
-            className="w-full rounded-lg border border-input px-4 py-2.5 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
+            className="w-full rounded-lg border border-input px-4 py-2.5 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
             required
           />
         </div>
 
         <div>
-          <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="password" className="mb-1.5 block text-sm font-medium text-foreground">
             Password
           </label>
           <PasswordInput
@@ -78,7 +78,7 @@ export function LoginForm() {
         </div>
 
         <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 text-sm text-slate-600">
+          <label className="flex items-center gap-2 text-sm text-muted-foreground">
             <input
               type="checkbox"
               checked={rememberMe}

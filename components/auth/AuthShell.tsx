@@ -3,12 +3,15 @@ import { Car, Cog, Wrench } from 'lucide-react';
 
 export function AuthShell({ children }: { children: ReactNode }) {
   return (
-    <div className="flex min-h-screen bg-white">
+    <div className="flex min-h-screen bg-background">
       <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-2/5 lg:px-16">
         <div className="mx-auto w-full max-w-sm">{children}</div>
-        <p className="mt-12 text-center text-xs text-slate-400">© Rede Peças {new Date().getFullYear()}</p>
+        <p className="mt-12 text-center text-xs text-muted-foreground">© Rede Peças {new Date().getFullYear()}</p>
       </div>
 
+      {/* Deliberately fixed-dark decorative hero panel — stays dark regardless
+          of light/dark mode, so it intentionally doesn't use the theme-aware
+          foreground/muted tokens used everywhere else in the app. */}
       <div className="relative hidden overflow-hidden bg-slate-900 lg:flex lg:w-3/5">
         <div className="absolute inset-0 bg-gradient-to-br from-slate-900 via-slate-900 to-primary" />
         <Cog className="absolute -top-16 -right-16 h-96 w-96 text-white/5" strokeWidth={0.75} />

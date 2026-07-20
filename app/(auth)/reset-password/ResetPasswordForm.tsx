@@ -54,11 +54,11 @@ export function ResetPasswordForm() {
   if (done) {
     return (
       <div className="text-center">
-        <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-emerald-50 text-emerald-600">
+        <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-success/10 text-success">
           <CheckCircle2 className="h-5 w-5" />
         </div>
-        <h1 className="mt-6 text-2xl font-bold text-slate-900">Password reset</h1>
-        <p className="mt-1 text-sm text-slate-500">
+        <h1 className="mt-6 text-2xl font-bold text-foreground">Password reset</h1>
+        <p className="mt-1 text-sm text-muted-foreground">
           Your password has been reset successfully. Sign in with your new password below.
         </p>
         <button
@@ -74,16 +74,16 @@ export function ResetPasswordForm() {
   return (
     <div>
       <BrandMark />
-      <h1 className="mt-6 text-2xl font-bold text-slate-900">Set new password</h1>
-      <p className="mt-1 text-sm text-slate-500">Enter the code we sent to your WhatsApp and choose a new password.</p>
+      <h1 className="mt-6 text-2xl font-bold text-foreground">Set new password</h1>
+      <p className="mt-1 text-sm text-muted-foreground">Enter the code we sent to your WhatsApp and choose a new password.</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <div>
-          <label htmlFor="code" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="code" className="mb-1.5 block text-sm font-medium text-foreground">
             Verification code
           </label>
           <div className="relative">
-            <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-slate-400" />
+            <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
             <input
               id="code"
               type="text"
@@ -91,14 +91,14 @@ export function ResetPasswordForm() {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               placeholder="6-digit code"
-              className="w-full rounded-lg border border-input py-2.5 pr-4 pl-10 text-sm text-slate-800 placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
+              className="w-full rounded-lg border border-input py-2.5 pr-4 pl-10 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
               required
             />
           </div>
         </div>
 
         <div>
-          <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-foreground">
             New password
           </label>
           <PasswordInput
@@ -111,7 +111,7 @@ export function ResetPasswordForm() {
         </div>
 
         <div>
-          <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-slate-700">
+          <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-foreground">
             Confirm password
           </label>
           <PasswordInput
@@ -146,7 +146,7 @@ export function ResetPasswordForm() {
 
       <Link
         href="/login"
-        className="mt-6 flex items-center justify-center gap-1.5 text-sm font-semibold text-slate-500 hover:text-slate-700"
+        className="mt-6 flex items-center justify-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
         Back to log in
@@ -160,12 +160,12 @@ function ChecklistItem({ met, label }: { met: boolean; label: string }) {
     <li className="flex items-center gap-2 text-xs">
       <span
         className={`flex h-4 w-4 items-center justify-center rounded-full ${
-          met ? 'bg-emerald-100 text-emerald-600' : 'bg-slate-100 text-slate-400'
+          met ? 'bg-success/15 text-success' : 'bg-muted text-muted-foreground'
         }`}
       >
         <Check className="h-3 w-3" strokeWidth={3} />
       </span>
-      <span className={met ? 'text-slate-600' : 'text-slate-400'}>{label}</span>
+      <span className={met ? 'text-foreground' : 'text-muted-foreground'}>{label}</span>
     </li>
   );
 }

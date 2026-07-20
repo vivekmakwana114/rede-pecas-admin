@@ -16,14 +16,14 @@ export function PeriodFilter({
   onPeriodChange: (value: AnalyticsPeriod) => void;
 }) {
   return (
-    <div className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 p-1">
+    <div className="inline-flex items-center gap-1 rounded-lg border border-border bg-muted p-1">
       {PERIODS.map(({ value, label }) => (
         <button
           key={value}
           type="button"
           onClick={() => onPeriodChange(value)}
           className={`rounded-md px-3 py-1.5 text-xs font-semibold transition-all ${
-            period === value ? 'bg-white text-primary shadow-sm' : 'text-slate-500 hover:text-slate-800'
+            period === value ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
           {label}
