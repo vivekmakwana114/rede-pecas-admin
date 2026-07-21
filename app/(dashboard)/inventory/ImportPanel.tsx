@@ -350,7 +350,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
                 <button
                   type="button"
                   onClick={reset}
-                  className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90"
+                  className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:opacity-90"
                 >
                   Import another file
                 </button>
@@ -359,7 +359,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
                   type="button"
                   onClick={handleImport}
                   disabled={upload.status === 'loading'}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90 disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:opacity-90 disabled:opacity-60"
                 >
                   {upload.status === 'loading' ? (
                     <>

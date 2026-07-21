@@ -49,7 +49,7 @@ export function Sidebar() {
               <Icon className="h-4.5 w-4.5" />
               <span className="flex-1">{label}</span>
               {badgeCount > 0 && (
-                <span className="rounded-full bg-info px-1.5 py-0.5 text-2xs font-bold text-info-foreground">
+                <span className="rounded-full bg-secondary px-1.5 py-0.5 text-2xs font-bold text-secondary-foreground">
                   {badgeCount}
                 </span>
               )}

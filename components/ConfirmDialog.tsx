@@ -43,8 +43,10 @@ export function ConfirmDialog({
           </button>
           <button
             onClick={onConfirm}
-            className={`rounded-lg px-3 py-1.5 text-xs font-semibold text-white shadow-sm transition-all ${
-              destructive ? 'bg-destructive hover:bg-destructive/90' : 'bg-primary hover:opacity-90'
+            className={`rounded-lg px-3 py-1.5 text-xs font-semibold shadow-sm transition-all ${
+              destructive
+                ? 'bg-destructive text-white hover:bg-destructive/90'
+                : 'bg-primary text-primary-foreground hover:opacity-90'
             }`}
           >
             {confirmLabel}

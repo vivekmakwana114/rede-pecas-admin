@@ -38,7 +38,11 @@ api.interceptors.response.use(
   (error) => {
     const status = error.response?.status;
     const url: string = error.config?.url ?? '';
-    const isAuthEndpoint = url.includes('/admin/login') || url.includes('/admin/refresh');
+    // A 401 from these endpoints is a domain-level answer the caller already
+    // handles (bad credentials, wrong current password) — not proof the
+    // session itself is dead, so it shouldn't force a global logout.
+    const isAuthEndpoint =
+      url.includes('/admin/login') || url.includes('/admin/refresh') || url.includes('/admin/change/password');
 
     if (status === 401 && !isAuthEndpoint && !isRedirectingToLogin && typeof window !== 'undefined') {
       isRedirectingToLogin = true;
@@ -49,7 +53,7 @@ api.interceptors.response.use(
       overlay.style.cssText =
         'position:fixed;inset:0;z-index:99999;background:#fff;display:flex;align-items:center;justify-content:center;';
       overlay.innerHTML =
-        '<div style="width:32px;height:32px;border-radius:50%;border:4px solid #1E3862;border-top-color:transparent;animation:_auth_spin 0.7s linear infinite"></div>' +
+        '<div style="width:32px;height:32px;border-radius:50%;border:4px solid var(--primary, #004060);border-top-color:transparent;animation:_auth_spin 0.7s linear infinite"></div>' +
         '<style>@keyframes _auth_spin{to{transform:rotate(360deg)}}</style>';
       document.body.appendChild(overlay);
 

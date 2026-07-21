@@ -164,7 +164,7 @@ export function ProductsGrid({
           <button
             type="button"
             onClick={onImportClick}
-            className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-white shadow-sm transition-all hover:opacity-90"
+            className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:opacity-90"
           >
             <Upload className="h-4 w-4" />
             Import Inventory

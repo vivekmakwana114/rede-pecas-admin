@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { login, getProfile } from './authService';
+import { login, getProfile, logout as logoutRequest } from './authService';
 
 export interface AdminProfile {
   id: number;
@@ -63,6 +63,21 @@ export const fetchAdminProfile = createAsyncThunk('auth/fetchAdminProfile', asyn
   }
 });
 
+// The only place that calls the backend logout endpoint — components dispatch
+// this one thunk instead of importing authService directly, same as loginUser
+// above. Always resolves (never rejects): the admin is logging out locally
+// regardless of whether the backend could reach Redis/revoke the token (e.g.
+// it was already expired, or the network dropped), so a failed revoke call
+// must not block the local logout below.
+export const logout = createAsyncThunk('auth/logout', async (_: void, { getState }) => {
+  const { tokens } = (getState() as { auth: AuthState }).auth;
+  try {
+    await logoutRequest(tokens?.refresh.token);
+  } catch {
+    // Best-effort — see doc comment above.
+  }
+});
+
 function readStoredAuth(): { admin: AdminProfile | null; tokens: AuthTokens | null } {
   if (typeof window === 'undefined') {
     return { admin: null, tokens: null };
@@ -84,20 +99,19 @@ const initialState: AuthState = { ...readStoredAuth(), status: 'idle', error: nu
 const authSlice = createSlice({
   name: 'auth',
   initialState,
-  reducers: {
-    logout(state) {
-      state.admin = null;
-      state.tokens = null;
-      state.status = 'idle';
-      state.error = null;
-      if (typeof window !== 'undefined') {
-        localStorage.removeItem('auth');
-        sessionStorage.removeItem('auth');
-      }
-    },
-  },
+  reducers: {},
   extraReducers: (builder) => {
     builder
+      .addCase(logout.fulfilled, (state) => {
+        state.admin = null;
+        state.tokens = null;
+        state.status = 'idle';
+        state.error = null;
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('auth');
+          sessionStorage.removeItem('auth');
+        }
+      })
       .addCase(loginUser.pending, (state) => {
         state.status = 'loading';
         state.error = null;
@@ -130,5 +144,4 @@ const authSlice = createSlice({
   },
 });
 
-export const { logout } = authSlice.actions;
 export default authSlice.reducer;

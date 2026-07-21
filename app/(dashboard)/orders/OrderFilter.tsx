@@ -82,7 +82,7 @@ export function OrderFilter({
               >
                 {label}
                 {Boolean(count) && (
-                  <span className="rounded-full bg-info px-1.5 py-0.5 text-2xs font-bold text-info-foreground">{count}</span>
+                  <span className="rounded-full bg-secondary px-1.5 py-0.5 text-2xs font-bold text-secondary-foreground">{count}</span>
                 )}
               </button>
             );

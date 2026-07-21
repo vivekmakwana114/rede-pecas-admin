@@ -8,6 +8,10 @@ export const refresh = (refreshToken: string) => {
   return api.post('/admin/refresh', { refreshToken });
 };
 
+export const logout = (refreshToken?: string) => {
+  return api.post('/admin/logout', { refreshToken });
+};
+
 export const getProfile = () => {
   return api.get('/admin/profile');
 };

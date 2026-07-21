@@ -27,7 +27,7 @@ export function StatsGrid({
 }) {
   const cards: StatCard[] = [
     { label: 'Total Customers', value: String(totalCustomers), icon: Users, iconClassName: 'bg-info/10 text-info' },
-    { label: 'Total Products', value: String(totalProducts), icon: Boxes, iconClassName: 'bg-violet-50 text-violet-600' },
+    { label: 'Total Products', value: String(totalProducts), icon: Boxes, iconClassName: 'bg-secondary/10 text-secondary' },
     { label: 'Total Orders', value: String(totalOrders), icon: ShoppingCart, iconClassName: 'bg-primary/10 text-primary' },
     {
       label: 'Approved Orders',

@@ -5,12 +5,18 @@ import { Eye, EyeOff } from 'lucide-react';
 
 export function PasswordInput({
   id,
+  name,
   value,
   onChange,
   placeholder,
   autoComplete,
 }: {
   id: string;
+  /** Defaults to `id` — set when a submit handler needs to read the field's
+   *  live DOM value via FormData (browser autofill can silently set an
+   *  input's value without firing React's onChange, leaving controlled
+   *  state stale; reading FormData at submit time sidesteps that). */
+  name?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
@@ -22,6 +28,7 @@ export function PasswordInput({
     <div className="relative">
       <input
         id={id}
+        name={name ?? id}
         type={visible ? 'text' : 'password'}
         value={value}
         onChange={(e) => onChange(e.target.value)}
