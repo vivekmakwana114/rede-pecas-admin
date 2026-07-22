@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import authReducer from './auth/authSlice';
 import ordersReducer from './orders/ordersSlice';
 import inventoryReducer from './inventory/inventorySlice';
+import servicesReducer from './services/servicesSlice';
 import customersReducer from './customers/customersSlice';
 import analyticsReducer from './analytics/analyticsSlice';
 
@@ -10,6 +11,7 @@ export const store = configureStore({
     auth: authReducer,
     orders: ordersReducer,
     inventory: inventoryReducer,
+    services: servicesReducer,
     customers: customersReducer,
     analytics: analyticsReducer,
   },

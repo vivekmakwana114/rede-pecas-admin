@@ -14,8 +14,29 @@ export interface UploadItemPayload {
   supplier: string;
   supplierAddress?: string;
   supplierPhone?: string;
-  serviceName?: string;
-  servicePrice?: number;
+  // Catalog fields from the products CSV (see product.service.ts's
+  // HEADER_ALIASES on the backend) — one field per CSV column, shown in the
+  // import review grid 1:1 with the source file so the admin can see
+  // exactly what's about to be imported, not a curated subset.
+  category?: string;
+  subcategory?: string;
+  oemReference?: string;
+  deliveryTime?: string;
+  vehicleMake?: string;
+  vehicleModel?: string;
+  yearStart?: number;
+  yearEnd?: number;
+  engine?: string;
+  engineNumber?: string;
+  viscosity?: string;
+  engineType?: string;
+  volumeLiters?: number;
+  specification?: string;
+  intervalKm?: number;
+  description?: string;
+  synonyms?: string;
+  imageUrl?: string;
+  brand?: string;
 }
 
 export const getProducts = () => {
@@ -26,26 +47,16 @@ export const getProduct = (id: number) => {
   return api.get(`/admin/products/${id}`);
 };
 
-export const updateProduct = (
-  id: number,
-  fields: {
-    name?: string;
-    reference?: string;
-    price?: number;
-    quantity?: number;
-    service_offered?: boolean;
-    service_name?: string | null;
-    service_price?: number | null;
-    supplierName?: string;
-    supplierAddress?: string | null;
-    supplierPhone?: string | null;
-  },
-) => {
+// Also how a product is re-activated — see ProductUpdateFields' `active`
+// field and ProductsGrid's "Activate product" action (PATCH { active: true }).
+export const updateProduct = (id: number, fields: import('./inventorySlice').ProductUpdateFields) => {
   return api.patch(`/admin/products/${id}`, fields);
 };
 
-// Soft-deletes the product (backend sets active = false rather than a hard
-// delete — see product.controller.ts).
+// Permanently deletes the product — the backend only allows this once it's
+// already inactive (409 otherwise), and also 409s if an existing order or
+// waitlist entry still references it — see product.controller.ts's
+// deleteProductHandler/hardDeleteProduct.
 export const deleteProduct = (id: number) => {
   return api.delete(`/admin/products/${id}`);
 };

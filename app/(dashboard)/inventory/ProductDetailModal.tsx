@@ -16,27 +16,54 @@ function fieldInputClassName(hasError?: string) {
 
 const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
 
+// Mirrors SUBCATEGORY_TO_SERVICE_CATEGORY in the backend's
+// src/constants/serviceCategory.ts — the admin has no endpoint to fetch this
+// mapping dynamically, so it's kept in sync here by hand. Only these 8
+// values are accepted by the backend's Joi schema (productUpdate).
+const SUBCATEGORY_OPTIONS = [
+  'Engine Oil',
+  'Filtration',
+  'Brakes',
+  'Suspension',
+  'Steering',
+  'Transmission',
+  'Mechanical',
+  'Engine',
+];
+
 type FormState = {
   name: string;
   reference: string;
   price: string;
   quantity: string;
-  service_offered: boolean;
-  service_name: string;
-  service_price: string;
   supplierName: string;
   supplierAddress: string;
   supplierPhone: string;
+  category: string;
+  subcategory: string;
+  vehicleMake: string;
+  vehicleModel: string;
+  yearStart: string;
+  yearEnd: string;
+  engine: string;
+  deliveryTime: string;
+  brand: string;
+  oemReference: string;
+  engineNumber: string;
+  viscosity: string;
+  engineType: string;
+  volumeLiters: string;
+  specification: string;
+  intervalKm: string;
+  imageUrl: string;
+  synonyms: string;
+  description: string;
 };
 
 /**
  * Every required field must actually be filled in — a blank Price/Quantity
  * string coerces to 0 via Number(''), which would otherwise sail through
- * silently as "valid" data instead of being caught as missing. Service Name/
- * Price are only required once the Service checkbox is on — picking the
- * service without giving it a name and a price is rejected instead of saved
- * as a half-filled, unusable offer (mirrors validateRow's rule for the bulk
- * import path in product.service.ts, so both entry points agree).
+ * silently as "valid" data instead of being caught as missing.
  */
 function validate(form: FormState): Record<string, string> {
   const errors: Record<string, string> = {};
@@ -58,15 +85,6 @@ function validate(form: FormState): Record<string, string> {
 
   if (!form.supplierName.trim()) errors.supplierName = 'Required.';
 
-  if (form.service_offered) {
-    if (!form.service_name.trim()) errors.service_name = 'Required when service is on.';
-    if (!form.service_price.trim()) {
-      errors.service_price = 'Required when service is on.';
-    } else if (Number.isNaN(Number(form.service_price)) || Number(form.service_price) < 0) {
-      errors.service_price = 'Must be 0 or more.';
-    }
-  }
-
   return errors;
 }
 
@@ -79,12 +97,15 @@ function FieldError({ message }: { message?: string }) {
 /**
  * View/edit side panel for a single product — slides in from the right
  * (matching ImportPanel's drawer, rather than a centered dialog) with fields
- * grouped into Product / Supplier / Service sections instead of one flat
- * list. Every field is editable, including the supplier's own name/address/
- * phone — editing those updates the shared supplier row (so every other
- * product from the same supplier reads the change too), not the product's
- * own (supplier_id, reference) identity. There's no dedicated supplier
- * management screen yet, so this panel doubles as it.
+ * grouped into sections: Classification, Vehicle Fit, Lubricant Specs
+ * (only when relevant), Catalog Info, Stock & Pricing, and Supplier. Every
+ * field is editable, including the supplier's own name/address/phone —
+ * editing those updates the shared supplier row (so every other product
+ * from the same supplier reads the change too), not the product's own
+ * (supplier_id, reference) identity. There's no dedicated supplier
+ * management screen yet, so this panel doubles as it. service_category is
+ * never directly editable — the backend recomputes it from subcategory (see
+ * updateProductHandler), so it's shown read-only here.
  */
 export function ProductDetailModal({
   product,
@@ -98,7 +119,12 @@ export function ProductDetailModal({
   onSaved: (message: string) => void;
 }) {
   const dispatch = useAppDispatch();
-  const [editing, setEditing] = useState(initialEditing);
+  // Fixed for this modal's lifetime — set once from which row action opened
+  // it ("View product" vs "Edit product"). Cancel/Save both close the panel
+  // (onClose) rather than switching back to a read-only view within the same
+  // instance, so there's no in-modal transition that would need this to be
+  // mutable state.
+  const editing = initialEditing;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -107,12 +133,28 @@ export function ProductDetailModal({
     reference: product.reference,
     price: String(product.price),
     quantity: String(product.quantity),
-    service_offered: product.service_offered ?? false,
-    service_name: product.service_name ?? '',
-    service_price: product.service_price != null ? String(product.service_price) : '',
     supplierName: product.supplier ?? '',
     supplierAddress: product.supplier_address ?? '',
     supplierPhone: product.supplier_phone ?? '',
+    category: product.category ?? 'part',
+    subcategory: product.subcategory ?? '',
+    vehicleMake: product.vehicle_make ?? '',
+    vehicleModel: product.vehicle_model ?? '',
+    yearStart: product.year_start != null ? String(product.year_start) : '',
+    yearEnd: product.year_end != null ? String(product.year_end) : '',
+    engine: product.engine ?? '',
+    deliveryTime: product.delivery_time ?? '',
+    brand: product.brand ?? '',
+    oemReference: product.oem_reference ?? '',
+    engineNumber: product.engine_number ?? '',
+    viscosity: product.viscosity ?? '',
+    engineType: product.engine_type ?? '',
+    volumeLiters: product.volume_liters != null ? String(product.volume_liters) : '',
+    specification: product.specification ?? '',
+    intervalKm: product.interval_km != null ? String(product.interval_km) : '',
+    imageUrl: product.image_url ?? '',
+    synonyms: product.synonyms ?? '',
+    description: product.description ?? '',
   });
 
   // Clears a field's error the moment the admin edits it, rather than making
@@ -140,12 +182,28 @@ export function ProductDetailModal({
       reference: form.reference,
       price: Number(form.price),
       quantity: Number(form.quantity),
-      service_offered: form.service_offered,
-      service_name: form.service_offered ? form.service_name || null : null,
-      service_price: form.service_offered && form.service_price ? Number(form.service_price) : null,
       supplierName: form.supplierName,
       supplierAddress: form.supplierAddress || null,
       supplierPhone: form.supplierPhone || null,
+      category: form.category || undefined,
+      subcategory: form.subcategory || undefined,
+      vehicle_make: form.vehicleMake || undefined,
+      vehicle_model: form.vehicleModel || null,
+      year_start: form.yearStart.trim() ? Number(form.yearStart) : null,
+      year_end: form.yearEnd.trim() ? Number(form.yearEnd) : null,
+      engine: form.engine || null,
+      delivery_time: form.deliveryTime || undefined,
+      brand: form.brand || null,
+      oem_reference: form.oemReference || null,
+      engine_number: form.engineNumber || null,
+      viscosity: form.viscosity || null,
+      engine_type: form.engineType || null,
+      volume_liters: form.volumeLiters.trim() ? Number(form.volumeLiters) : null,
+      specification: form.specification || null,
+      interval_km: form.intervalKm.trim() ? Number(form.intervalKm) : null,
+      image_url: form.imageUrl || null,
+      synonyms: form.synonyms || undefined,
+      description: form.description || undefined,
     };
 
     const result = await dispatch(updateProduct({ id: product.id, fields }));
@@ -158,6 +216,10 @@ export function ProductDetailModal({
       setError((result.payload as string) || 'Failed to update the product.');
     }
   };
+
+  const isLubricant = product.category === 'lubricant' || !!(product.viscosity || product.engine_type || product.volume_liters);
+  const vehicleFit = [product.vehicle_make, product.vehicle_model].filter(Boolean).join(' ');
+  const yearRange = [product.year_start, product.year_end].filter((y) => y != null).join('–');
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-foreground/60" onClick={onClose}>
@@ -230,6 +292,201 @@ export function ProductDetailModal({
                     <FieldError message={fieldErrors.quantity} />
                   </div>
                 </div>
+                <div>
+                  <label className={labelClassName}>Description</label>
+                  <textarea
+                    rows={2}
+                    className={fieldInputClassName()}
+                    value={form.description}
+                    onChange={(e) => updateField('description', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClassName}>Synonyms / search keywords</label>
+                  <input
+                    className={fieldInputClassName()}
+                    placeholder="e.g. oil filter, filtro de óleo"
+                    value={form.synonyms}
+                    onChange={(e) => updateField('synonyms', e.target.value)}
+                  />
+                </div>
+              </Section>
+
+              <Section title="Classification">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClassName}>Category</label>
+                    <select
+                      className={fieldInputClassName()}
+                      value={form.category}
+                      onChange={(e) => updateField('category', e.target.value)}
+                    >
+                      <option value="part">Part</option>
+                      <option value="lubricant">Lubricant</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className={labelClassName}>Subcategory</label>
+                    <select
+                      className={fieldInputClassName()}
+                      value={form.subcategory}
+                      onChange={(e) => updateField('subcategory', e.target.value)}
+                    >
+                      <option value="" disabled>
+                        Select…
+                      </option>
+                      {SUBCATEGORY_OPTIONS.map((opt) => (
+                        <option key={opt} value={opt}>
+                          {opt}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClassName}>Brand</label>
+                  <input
+                    className={fieldInputClassName()}
+                    value={form.brand}
+                    onChange={(e) => updateField('brand', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClassName}>OEM Reference</label>
+                  <input
+                    className={fieldInputClassName()}
+                    value={form.oemReference}
+                    onChange={(e) => updateField('oemReference', e.target.value)}
+                  />
+                </div>
+              </Section>
+
+              <Section title="Vehicle Fit">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClassName}>Vehicle Make</label>
+                    <input
+                      className={fieldInputClassName()}
+                      value={form.vehicleMake}
+                      onChange={(e) => updateField('vehicleMake', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClassName}>Vehicle Model</label>
+                    <input
+                      className={fieldInputClassName()}
+                      value={form.vehicleModel}
+                      onChange={(e) => updateField('vehicleModel', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClassName}>Year Start</label>
+                    <input
+                      type="number"
+                      className={fieldInputClassName()}
+                      value={form.yearStart}
+                      onChange={(e) => updateField('yearStart', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClassName}>Year End</label>
+                    <input
+                      type="number"
+                      className={fieldInputClassName()}
+                      value={form.yearEnd}
+                      onChange={(e) => updateField('yearEnd', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClassName}>Engine</label>
+                    <input
+                      className={fieldInputClassName()}
+                      value={form.engine}
+                      onChange={(e) => updateField('engine', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClassName}>Engine Number</label>
+                    <input
+                      className={fieldInputClassName()}
+                      value={form.engineNumber}
+                      onChange={(e) => updateField('engineNumber', e.target.value)}
+                    />
+                  </div>
+                </div>
+              </Section>
+
+              <Section title="Lubricant Specs">
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClassName}>Viscosity</label>
+                    <input
+                      className={fieldInputClassName()}
+                      placeholder="e.g. 15W40"
+                      value={form.viscosity}
+                      onChange={(e) => updateField('viscosity', e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className={labelClassName}>Engine Type</label>
+                    <input
+                      className={fieldInputClassName()}
+                      value={form.engineType}
+                      onChange={(e) => updateField('engineType', e.target.value)}
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className={labelClassName}>Volume (Liters)</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    className={fieldInputClassName()}
+                    value={form.volumeLiters}
+                    onChange={(e) => updateField('volumeLiters', e.target.value)}
+                  />
+                </div>
+              </Section>
+
+              <Section title="Catalog Info">
+                <div>
+                  <label className={labelClassName}>Delivery Time</label>
+                  <input
+                    className={fieldInputClassName()}
+                    placeholder="e.g. Today"
+                    value={form.deliveryTime}
+                    onChange={(e) => updateField('deliveryTime', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClassName}>Specification</label>
+                  <input
+                    className={fieldInputClassName()}
+                    value={form.specification}
+                    onChange={(e) => updateField('specification', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClassName}>Interval (Km)</label>
+                  <input
+                    type="number"
+                    className={fieldInputClassName()}
+                    value={form.intervalKm}
+                    onChange={(e) => updateField('intervalKm', e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className={labelClassName}>Image URL</label>
+                  <input
+                    className={fieldInputClassName()}
+                    value={form.imageUrl}
+                    onChange={(e) => updateField('imageUrl', e.target.value)}
+                  />
+                </div>
               </Section>
 
               <Section title="Supplier">
@@ -261,53 +518,12 @@ export function ProductDetailModal({
                 </div>
               </Section>
 
-              <Section title="Service">
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    id="service_offered"
-                    checked={form.service_offered}
-                    onChange={(e) => updateField('service_offered', e.target.checked)}
-                    className="h-4 w-4 rounded border-input text-primary focus:ring-ring"
-                  />
-                  <label htmlFor="service_offered" className="text-xs font-semibold text-muted-foreground">
-                    Service offered alongside this product
-                  </label>
-                </div>
-
-                {form.service_offered && (
-                  <div className="grid grid-cols-2 gap-3 pt-1">
-                    <div>
-                      <label className={labelClassName}>Service Name</label>
-                      <input
-                        className={fieldInputClassName(fieldErrors.service_name)}
-                        value={form.service_name}
-                        onChange={(e) => updateField('service_name', e.target.value)}
-                      />
-                      <FieldError message={fieldErrors.service_name} />
-                    </div>
-                    <div>
-                      <label className={labelClassName}>Service Price</label>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        className={fieldInputClassName(fieldErrors.service_price)}
-                        value={form.service_price}
-                        onChange={(e) => updateField('service_price', e.target.value)}
-                      />
-                      <FieldError message={fieldErrors.service_price} />
-                    </div>
-                  </div>
-                )}
-              </Section>
-
               {error && <p className="text-xs text-destructive">{error}</p>}
 
               <div className="flex justify-end gap-2">
                 <button
                   type="button"
-                  onClick={() => setEditing(false)}
+                  onClick={onClose}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
                 >
                   Cancel
@@ -323,28 +539,52 @@ export function ProductDetailModal({
             </form>
           ) : (
             <div className="space-y-6">
+              {product.description && (
+                <Section title="Description">
+                  <p className="text-sm text-foreground">{product.description}</p>
+                </Section>
+              )}
+
+              <Section title="Classification">
+                <InfoRow label="Category" value={product.category || '—'} />
+                <InfoRow label="Subcategory" value={product.subcategory || '—'} />
+                <InfoRow label="Service Category" value={product.service_category || '—'} />
+                <InfoRow label="Brand" value={product.brand || '—'} />
+                <InfoRow label="OEM Reference" value={product.oem_reference || '—'} />
+              </Section>
+
+              <Section title="Vehicle Fit">
+                <InfoRow label="Make / Model" value={vehicleFit || '—'} />
+                <InfoRow label="Year Range" value={yearRange || '—'} />
+                <InfoRow label="Engine" value={product.engine || '—'} />
+                <InfoRow label="Engine Number" value={product.engine_number || '—'} />
+              </Section>
+
+              {isLubricant && (
+                <Section title="Lubricant Specs">
+                  <InfoRow label="Viscosity" value={product.viscosity || '—'} />
+                  <InfoRow label="Engine Type" value={product.engine_type || '—'} />
+                  <InfoRow label="Volume" value={product.volume_liters != null ? `${product.volume_liters} L` : '—'} />
+                </Section>
+              )}
+
+              <Section title="Catalog Info">
+                <InfoRow label="Delivery Time" value={product.delivery_time || '—'} />
+                <InfoRow label="Specification" value={product.specification || '—'} />
+                <InfoRow label="Interval" value={product.interval_km != null ? `${product.interval_km} km` : '—'} />
+                <InfoRow label="Synonyms" value={product.synonyms || '—'} />
+              </Section>
+
               <Section title="Stock &amp; Pricing">
                 <InfoRow label="Price" value={formatKwanza(product.price)} />
                 <InfoRow label="Stock" value={String(product.quantity)} />
+                <InfoRow label="Status" value={product.active === false ? 'Inactive' : 'Active'} />
               </Section>
 
               <Section title="Supplier">
                 <InfoRow label="Name" value={product.supplier || '—'} />
                 <InfoRow label="Address" value={product.supplier_address || '—'} />
                 <InfoRow label="Phone" value={product.supplier_phone || '—'} />
-              </Section>
-
-              <Section title="Service">
-                {product.service_offered && product.service_name ? (
-                  <>
-                    <InfoRow label="Name" value={product.service_name} />
-                    {product.service_price != null && (
-                      <InfoRow label="Price" value={formatKwanza(product.service_price)} />
-                    )}
-                  </>
-                ) : (
-                  <p className="text-xs text-muted-foreground">No service attached to this product.</p>
-                )}
               </Section>
             </div>
           )}

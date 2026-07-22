@@ -14,160 +14,123 @@ import {
 } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { importInventory, resetUpload, fetchProducts } from '@/store/inventory/inventorySlice';
+import { importServices, resetServiceUpload, fetchServices } from '@/store/services/servicesSlice';
 import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
-import { parseWorkbookRows, type ParseResult } from './adapters';
-import * as inventoryService from '@/store/inventory/inventoryService';
-import type { UploadItemPayload } from '@/store/inventory/inventoryService';
+import { parseServiceWorkbookRows, type ServiceParseResult } from './serviceAdapters';
+import * as servicesService from '@/store/services/servicesService';
+import type { ServiceUploadItemPayload } from '@/store/services/servicesService';
 
-// Client-side parsing (adapters.ts) only drives the preview grid below —
-// the file itself is what actually gets uploaded and validated server-side
-// (see handleImport), so this preview can be a little looser than the
-// server's rules without risk of a bad file slipping through.
+// Mirrors ImportPanel.tsx — client-side parsing (serviceAdapters.ts) only
+// drives the preview grid below; the file itself is what actually gets
+// uploaded and validated server-side (see handleImport).
 
 type ParseError = { type: 'missing-columns'; missingColumns: string[] } | { type: 'empty' } | { type: 'unreadable' };
 type Stage = 'idle' | 'invalid' | 'ready';
 
 const STEPS = ['Select file', 'Review', 'Import'] as const;
 
-// One column per column in produtos_rede_pecas_via_pecas_v3_EN.csv, in file
-// order — no combining fields into a single cell, so the review step shows
-// exactly what's in the source file, matching ProductsGrid's columns.
-const ITEM_COLUMNS: GridColumn<UploadItemPayload>[] = [
-  { key: 'name', header: 'Product', cell: (row) => <span className="font-medium text-foreground">{row.name}</span> },
+// One column per column in servicos_rede_pecas_v3_EN.csv, in file order — no
+// combining fields into a single cell, so the review step shows exactly
+// what's in the source file, matching ServicesGrid's columns.
+const ITEM_COLUMNS: GridColumn<ServiceUploadItemPayload>[] = [
   {
-    key: 'supplier',
-    header: 'Supplier Name',
-    cell: (row) => <span className="text-muted-foreground">{row.supplier || '—'}</span>,
+    key: 'providerName',
+    header: 'Provider Name',
+    cell: (row) => <span className="text-muted-foreground">{row.providerName}</span>,
   },
   {
-    key: 'category',
-    header: 'Category',
-    cell: (row) => <span className="text-muted-foreground">{row.category || '—'}</span>,
+    key: 'providerAddress',
+    header: 'Address',
+    cell: (row) => <span className="text-muted-foreground">{row.providerAddress || '—'}</span>,
   },
   {
-    key: 'subcategory',
-    header: 'Subcategory',
-    cell: (row) => <span className="text-muted-foreground">{row.subcategory || '—'}</span>,
+    key: 'providerProvince',
+    header: 'Province',
+    cell: (row) => <span className="text-muted-foreground">{row.providerProvince || '—'}</span>,
   },
   {
-    key: 'reference',
-    header: 'Reference',
-    cell: (row) => <span className="font-mono text-sm font-semibold text-foreground">{row.reference}</span>,
+    key: 'providerPhone',
+    header: 'Phone',
+    cell: (row) => <span className="text-muted-foreground">{row.providerPhone || '—'}</span>,
   },
   {
-    key: 'oemReference',
-    header: 'OEM Reference',
-    cell: (row) => <span className="font-mono text-sm text-muted-foreground">{row.oemReference || '—'}</span>,
+    key: 'specialties',
+    header: 'Specialties',
+    cell: (row) => <span className="text-muted-foreground">{row.specialties || '—'}</span>,
   },
   {
-    key: 'brand',
-    header: 'Brand',
-    cell: (row) => <span className="text-muted-foreground">{row.brand || '—'}</span>,
-  },
-  {
-    key: 'price',
-    header: 'Price',
+    key: 'rating',
+    header: 'Rating',
     align: 'right',
-    cell: (row) => <span className="text-foreground">{formatKwanza(row.price)}</span>,
-  },
-  { key: 'quantity', header: 'Quantity', align: 'right', cell: (row) => <span className="text-foreground">{row.quantity}</span> },
-  {
-    key: 'deliveryTime',
-    header: 'Delivery Time',
-    cell: (row) => <span className="text-muted-foreground">{row.deliveryTime || '—'}</span>,
+    cell: (row) => <span className="text-muted-foreground">{row.rating ?? '—'}</span>,
   },
   {
-    key: 'vehicleMake',
-    header: 'Vehicle Make',
-    cell: (row) => <span className="text-muted-foreground">{row.vehicleMake || '—'}</span>,
+    key: 'responseTime',
+    header: 'Response Time',
+    cell: (row) => <span className="text-muted-foreground">{row.responseTime || '—'}</span>,
   },
   {
-    key: 'vehicleModel',
-    header: 'Vehicle Model',
-    cell: (row) => <span className="text-muted-foreground">{row.vehicleModel || '—'}</span>,
-  },
-  { key: 'yearStart', header: 'Year Start', align: 'right', cell: (row) => <span className="text-muted-foreground">{row.yearStart ?? '—'}</span> },
-  { key: 'yearEnd', header: 'Year End', align: 'right', cell: (row) => <span className="text-muted-foreground">{row.yearEnd ?? '—'}</span> },
-  { key: 'engine', header: 'Engine', cell: (row) => <span className="text-muted-foreground">{row.engine || '—'}</span> },
-  {
-    key: 'engineNumber',
-    header: 'Engine Number',
-    cell: (row) => <span className="text-muted-foreground">{row.engineNumber || '—'}</span>,
-  },
-  { key: 'viscosity', header: 'Viscosity', cell: (row) => <span className="text-muted-foreground">{row.viscosity || '—'}</span> },
-  {
-    key: 'engineType',
-    header: 'Engine Type',
-    cell: (row) => <span className="text-muted-foreground">{row.engineType || '—'}</span>,
+    key: 'serviceName',
+    header: 'Service Name',
+    cell: (row) => <span className="font-medium text-foreground">{row.serviceName}</span>,
   },
   {
-    key: 'volumeLiters',
-    header: 'Volume Liters',
+    key: 'serviceCategory',
+    header: 'Service Category',
+    cell: (row) => <span className="text-muted-foreground">{row.serviceCategory}</span>,
+  },
+  {
+    key: 'serviceBasePrice',
+    header: 'Service Base Price',
     align: 'right',
-    cell: (row) => <span className="text-muted-foreground">{row.volumeLiters ?? '—'}</span>,
+    cell: (row) => <span className="text-foreground">{formatKwanza(row.serviceBasePrice)}</span>,
   },
   {
-    key: 'specification',
-    header: 'Specification',
-    cell: (row) => <span className="text-muted-foreground">{row.specification || '—'}</span>,
-  },
-  {
-    key: 'intervalKm',
-    header: 'Interval Km',
+    key: 'serviceDurationH',
+    header: 'Service Duration H',
     align: 'right',
-    cell: (row) => <span className="text-muted-foreground">{row.intervalKm ?? '—'}</span>,
+    cell: (row) => <span className="text-foreground">{row.serviceDurationH}</span>,
   },
   {
-    key: 'description',
-    header: 'Description',
+    key: 'availableAtHome',
+    header: 'Available At Home',
+    align: 'center',
+    cell: (row) => <span className="text-foreground">{row.availableAtHome ? 'Yes' : 'No'}</span>,
+  },
+  {
+    key: 'baseTravelFee',
+    header: 'Base Travel Fee',
+    align: 'right',
+    cell: (row) => <span className="text-muted-foreground">{row.baseTravelFee != null ? formatKwanza(row.baseTravelFee) : '—'}</span>,
+  },
+  {
+    key: 'logisticsFeeNotes',
+    header: 'Logistics Fee Notes',
     cellClassName: 'max-w-xs',
-    cell: (row) => <span className="text-muted-foreground">{row.description || '—'}</span>,
-  },
-  {
-    key: 'synonyms',
-    header: 'Synonyms',
-    cellClassName: 'max-w-xs',
-    cell: (row) => <span className="text-muted-foreground">{row.synonyms || '—'}</span>,
-  },
-  {
-    key: 'imageUrl',
-    header: 'Image Url',
-    cell: (row) => <span className="text-muted-foreground">{row.imageUrl || '—'}</span>,
-  },
-  {
-    key: 'supplierAddress',
-    header: 'Supplier Address',
-    cell: (row) => <span className="text-muted-foreground">{row.supplierAddress || '—'}</span>,
-  },
-  {
-    key: 'supplierPhone',
-    header: 'Supplier Phone',
-    cell: (row) => <span className="text-muted-foreground">{row.supplierPhone || '—'}</span>,
+    cell: (row) => <span className="text-muted-foreground">{row.logisticsFeeNotes || '—'}</span>,
   },
 ];
 
-export function ImportPanel({ onClose }: { onClose: () => void }) {
+export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
   const dispatch = useAppDispatch();
-  const { upload } = useAppSelector((state) => state.inventory);
+  const { upload } = useAppSelector((state) => state.services);
 
   const [stage, setStage] = useState<Stage>('idle');
   const [parseError, setParseError] = useState<ParseError | null>(null);
-  const [parseResult, setParseResult] = useState<ParseResult | null>(null);
+  const [parseResult, setParseResult] = useState<ServiceParseResult | null>(null);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [fileName, setFileName] = useState<string | null>(null);
   const [dragActive, setDragActive] = useState(false);
   const [templateDownloading, setTemplateDownloading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // The panel is only ever mounted while open (page.tsx conditionally renders
-  // it), so unmount is the one reliable "closed" signal — clear the shared
-  // upload status here rather than on every close path, so reopening always
-  // starts from a clean 'ready' stage instead of showing a stale success/error.
+  // Panel is only ever mounted while open (page.tsx conditionally renders
+  // it) — unmount clears the shared upload status so reopening always starts
+  // from a clean 'ready' stage instead of showing a stale success/error.
   useEffect(() => {
     return () => {
-      dispatch(resetUpload());
+      dispatch(resetServiceUpload());
     };
   }, [dispatch]);
 
@@ -182,7 +145,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
         const worksheet = workbook.Sheets[workbook.SheetNames[0]];
         const headerRow = (XLSX.utils.sheet_to_json<unknown[]>(worksheet, { header: 1 })[0] as unknown[] | undefined) ?? [];
         const rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet);
-        const result = parseWorkbookRows(rawRows, headerRow);
+        const result = parseServiceWorkbookRows(rawRows, headerRow);
 
         if (result.missingColumns.length > 0) {
           setParseError({ type: 'missing-columns', missingColumns: result.missingColumns });
@@ -215,11 +178,11 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
   const handleDownloadTemplate = async () => {
     setTemplateDownloading(true);
     try {
-      const res = await inventoryService.downloadTemplate();
+      const res = await servicesService.downloadServiceTemplate();
       const url = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = 'inventory-template.xlsx';
+      link.download = 'service-template.xlsx';
       link.click();
       URL.revokeObjectURL(url);
     } finally {
@@ -240,18 +203,14 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     setParseResult(null);
     setSelectedFile(null);
     setFileName(null);
-    dispatch(resetUpload());
+    dispatch(resetServiceUpload());
   };
 
   const handleImport = async () => {
-    // The uploaded file itself is what's sent — the server parses and
-    // validates it (parseResult only drives the preview grid above). Result
-    // is shown inline in the stage === 'ready' / upload.status === 'succeeded'
-    // block below — no separate toast, so there's only one place to look.
     if (!selectedFile) return;
-    const result = await dispatch(importInventory(selectedFile));
-    if (importInventory.fulfilled.match(result)) {
-      dispatch(fetchProducts());
+    const result = await dispatch(importServices(selectedFile));
+    if (importServices.fulfilled.match(result)) {
+      dispatch(fetchServices());
     }
   };
 
@@ -262,7 +221,7 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
       <div className="flex h-full w-full max-w-lg flex-col bg-background shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">Import Inventory</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">Import Services</h2>
             <ol className="mt-3 flex items-center gap-2">
               {STEPS.map((label, index) => (
                 <li key={label} className="flex items-center gap-2">
@@ -313,7 +272,9 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
               <div className="flex flex-col items-center">
                 <UploadCloud className="mb-3 h-10 w-10 text-muted-foreground" />
                 <p className="text-sm font-bold text-foreground">Drop a CSV or Excel file, or click to browse</p>
-                <p className="mt-1 text-xs text-muted-foreground">Needs SKU, Product, Price, Quantity and Supplier Name columns</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Needs Provider Name, Service Name, Service Category, Service Base Price and Service Duration H columns
+                </p>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -409,14 +370,22 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
               )}
 
               <p className="text-xs font-semibold text-muted-foreground">
-                {upload.status === 'succeeded' ? 'Imported items' : 'Ready to import'} · {parseResult.items.length} product
+                {upload.status === 'succeeded' ? 'Imported items' : 'Ready to import'} · {parseResult.items.length} service
                 {parseResult.items.length === 1 ? '' : 's'}
                 {parseResult.skippedCount > 0 && upload.status !== 'succeeded' && (
-                  <span className="text-warning"> · {parseResult.skippedCount} row{parseResult.skippedCount === 1 ? '' : 's'} skipped (missing reference or name)</span>
+                  <span className="text-warning">
+                    {' '}
+                    · {parseResult.skippedCount} row{parseResult.skippedCount === 1 ? '' : 's'} skipped (missing provider, service name, or category)
+                  </span>
                 )}
               </p>
 
-              <Grid columns={ITEM_COLUMNS} rows={parseResult.items} getRowId={(row) => row.reference} pageSize={5} />
+              <Grid
+                columns={ITEM_COLUMNS}
+                rows={parseResult.items}
+                getRowId={(row) => `${row.providerName}-${row.serviceName}`}
+                pageSize={5}
+              />
 
               {upload.status === 'succeeded' && upload.result?.skipped && upload.result.skipped.length > 0 && (
                 <div className="rounded-lg border border-warning/30 bg-warning/10 p-4">
@@ -461,10 +430,10 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
                   {upload.status === 'loading' ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Importing {parseResult.items.length} products…
+                      Importing {parseResult.items.length} services…
                     </>
                   ) : (
-                    `Import ${parseResult.items.length} products`
+                    `Import ${parseResult.items.length} services`
                   )}
                 </button>
               )}

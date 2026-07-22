@@ -157,24 +157,28 @@ export default function OrdersPage() {
     });
   };
 
-  // Only orders still in flight (pending or awaiting stock confirmation) can
-  // be cancelled — the backend rejects an already-approved order (no refund
-  // flow exists) and an already-rejected/cancelled one (nothing left to do).
+  // Purely an admin-grid display action — hides the order from this list
+  // (backend sets admin_hidden, only ever on an already-approved order). It
+  // never touches the order's real status, never notifies the customer, and
+  // doesn't affect their order in any way — this is just decluttering the
+  // approved log, not a real cancellation. Only offered once an order is
+  // approved (see cancellable below) — the backend also enforces this
+  // server-side, rejecting with a 409 otherwise.
   const cancelOrderAction = async (number: string) => {
     const result = await dispatch(cancelOrder(number));
     if (cancelOrder.fulfilled.match(result)) {
-      showToast(`Order #${number} deleted.`, 'success');
+      showToast(`Order #${number} removed from the grid.`, 'success');
       dispatch(fetchOrders(range));
     } else {
-      showToast('Failed to delete the order.', 'error');
+      showToast('Failed to remove the order.', 'error');
     }
   };
 
   const handleCancel = (number: string) => {
     setConfirmDialog({
-      title: `Delete order #${number}?`,
-      message: 'This action cannot be undone.',
-      confirmLabel: 'Delete Order',
+      title: `Remove order #${number} from the grid?`,
+      message: "This only hides it from your admin view — it doesn't change the order itself or notify the customer, and can't be undone from here.",
+      confirmLabel: 'Remove',
       destructive: true,
       onConfirm: () => {
         setConfirmDialog(null);
@@ -393,14 +397,16 @@ export default function OrdersPage() {
       header: 'Actions',
       align: 'right',
       cell: (row) => {
-        const cancellable = row.status === 'pending' || row.status === 'stockConfirmation';
+        // Only offered on approved orders — see cancelOrderAction/handleCancel
+        // above for why (admin-grid-only, backend also enforces this).
+        const removableFromGrid = row.status === 'approved';
         return (
           <div className="flex justify-end">
             <RowActionsMenu
               actions={[
                 { label: 'View order', icon: Eye, onClick: () => setViewOrderNumber(row.number) },
-                ...(cancellable
-                  ? [{ label: 'Delete order', icon: Trash2, onClick: () => handleCancel(row.number), destructive: true }]
+                ...(removableFromGrid
+                  ? [{ label: 'Remove from grid', icon: Trash2, onClick: () => handleCancel(row.number), destructive: true }]
                   : []),
               ]}
             />

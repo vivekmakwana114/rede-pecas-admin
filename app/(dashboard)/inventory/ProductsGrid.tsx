@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, Loader2, Pencil, Search, Trash2, Upload } from 'lucide-react';
+import { Ban, CheckCircle2, Eye, Loader2, Pencil, Search, Trash2, Upload } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { deleteProduct, fetchProducts } from '@/store/inventory/inventorySlice';
+import { deleteProduct, updateProduct, fetchProducts } from '@/store/inventory/inventorySlice';
 import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
 import { RowActionsMenu } from '@/components/RowActionsMenu';
@@ -34,19 +34,59 @@ export function ProductsGrid({
     dispatch(fetchProducts());
   }, [dispatch]);
 
+  // Reversible — flips active to false via PATCH (updateProduct). The
+  // product stays out of customer search but stays listed here (see
+  // getProductsHandler on the backend), and is only reachable to permanently
+  // delete once it's in this state — see handleDelete below.
+  const handleDeactivate = (product: Product) => {
+    setConfirmDialog({
+      title: `Deactivate product ${product.name}?`,
+      message: 'It will stop showing up in customer search results until reactivated. You can turn it back on any time from this same menu.',
+      confirmLabel: 'Deactivate',
+      onConfirm: async () => {
+        setConfirmDialog(null);
+        const result = await dispatch(updateProduct({ id: product.id, fields: { active: false } }));
+        if (updateProduct.fulfilled.match(result)) {
+          showToast(`Product ${product.name} deactivated.`, 'success');
+          dispatch(fetchProducts());
+        } else {
+          showToast('Failed to deactivate the product.', 'error');
+        }
+      },
+    });
+  };
+
+  // Reverse of deactivate — only reachable once a product is already
+  // inactive. No confirmation needed: re-activating isn't destructive.
+  const handleActivate = async (product: Product) => {
+    const result = await dispatch(updateProduct({ id: product.id, fields: { active: true } }));
+    if (updateProduct.fulfilled.match(result)) {
+      showToast(`Product ${product.name} activated.`, 'success');
+      dispatch(fetchProducts());
+    } else {
+      showToast('Failed to activate the product.', 'error');
+    }
+  };
+
+  // Permanent — only enabled once a product is already inactive (the
+  // backend rejects DELETE /admin/products/:id with a 409 otherwise, see
+  // hardDeleteProduct), so this action only ever shows up on inactive rows.
+  // A product still referenced by an existing order/waitlist entry can't be
+  // deleted at all — the backend turns that into a 409 too, shown via the
+  // toast's error message instead of a generic failure.
   const handleDelete = (product: Product) => {
     setConfirmDialog({
-      title: `Delete product ${product.name}?`,
-      message: 'This removes it from the inventory list. This action cannot be undone.',
-      confirmLabel: 'Delete',
+      title: `Permanently delete product ${product.name}?`,
+      message: 'This removes it from the database entirely and cannot be undone.',
+      confirmLabel: 'Delete permanently',
       onConfirm: async () => {
         setConfirmDialog(null);
         const result = await dispatch(deleteProduct(product.id));
         if (deleteProduct.fulfilled.match(result)) {
-          showToast(`Product ${product.name} deleted.`, 'success');
+          showToast(`Product ${product.name} permanently deleted.`, 'success');
           dispatch(fetchProducts());
         } else {
-          showToast('Failed to delete the product.', 'error');
+          showToast((result.payload as string) || 'Failed to delete the product.', 'error');
         }
       },
     });
@@ -60,14 +100,16 @@ export function ProductsGrid({
     );
   }, [products, query]);
 
+  // One column per column in produtos_rede_pecas_via_pecas_v3_EN.csv, in file
+  // order (name;supplier;category;subcategory;reference;oem_reference;
+  // part_brand;price;quantity;delivery_time;vehicle_make;vehicle_model;
+  // year_start;year_end;engine;engine_number;viscosity;engine_type;
+  // volume_liters;specification;interval_km;description;synonyms;image_url)
+  // — no combining fields into a single cell, so what's in the grid matches
+  // what's in the file 1:1. `active` gets its own Status column at the end
+  // instead of following the file's column position, since it's shown as a
+  // badge tied to the row actions rather than plain imported data.
   const columns: GridColumn<Product>[] = [
-    {
-      key: 'reference',
-      header: 'SKU',
-      sortable: true,
-      sortValue: (row) => row.reference,
-      cell: (row) => <span className="font-mono text-xs font-semibold text-foreground">{row.reference}</span>,
-    },
     {
       key: 'name',
       header: 'Product',
@@ -80,7 +122,40 @@ export function ProductsGrid({
       header: 'Supplier',
       sortable: true,
       sortValue: (row) => row.supplier ?? '',
-      cell: (row) => <span className="text-xs text-muted-foreground">{row.supplier || '—'}</span>,
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.supplier || '—'}</span>,
+    },
+    {
+      key: 'category',
+      header: 'Category',
+      sortable: true,
+      sortValue: (row) => row.category ?? '',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.category || '—'}</span>,
+    },
+    {
+      key: 'subcategory',
+      header: 'Subcategory',
+      sortable: true,
+      sortValue: (row) => row.subcategory ?? '',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.subcategory || '—'}</span>,
+    },
+    {
+      key: 'reference',
+      header: 'Reference',
+      sortable: true,
+      sortValue: (row) => row.reference,
+      cell: (row) => <span className="font-mono text-sm font-semibold text-foreground">{row.reference}</span>,
+    },
+    {
+      key: 'oem_reference',
+      header: 'OEM Reference',
+      cell: (row) => <span className="font-mono text-sm text-muted-foreground">{row.oem_reference || '—'}</span>,
+    },
+    {
+      key: 'brand',
+      header: 'Brand',
+      sortable: true,
+      sortValue: (row) => row.brand ?? '',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.brand || '—'}</span>,
     },
     {
       key: 'price',
@@ -92,13 +167,13 @@ export function ProductsGrid({
     },
     {
       key: 'quantity',
-      header: 'Stock',
+      header: 'Quantity',
       sortable: true,
       align: 'right',
       sortValue: (row) => row.quantity,
       cell: (row) => (
         <span
-          className={`inline-flex rounded-full border px-2.5 py-1 text-xs font-bold ${
+          className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-bold ${
             row.quantity === 0
               ? 'border-destructive/30 bg-destructive/10 text-destructive'
               : row.quantity < 5
@@ -111,17 +186,110 @@ export function ProductsGrid({
       ),
     },
     {
-      key: 'service',
-      header: 'Service',
+      key: 'delivery_time',
+      header: 'Delivery Time',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.delivery_time || '—'}</span>,
+    },
+    {
+      key: 'vehicle_make',
+      header: 'Vehicle Make',
+      sortable: true,
+      sortValue: (row) => row.vehicle_make ?? '',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.vehicle_make || '—'}</span>,
+    },
+    {
+      key: 'vehicle_model',
+      header: 'Vehicle Model',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.vehicle_model || '—'}</span>,
+    },
+    {
+      key: 'year_start',
+      header: 'Year Start',
+      align: 'right',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.year_start ?? '—'}</span>,
+    },
+    {
+      key: 'year_end',
+      header: 'Year End',
+      align: 'right',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.year_end ?? '—'}</span>,
+    },
+    {
+      key: 'engine',
+      header: 'Engine',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.engine || '—'}</span>,
+    },
+    {
+      key: 'engine_number',
+      header: 'Engine Number',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.engine_number || '—'}</span>,
+    },
+    {
+      key: 'viscosity',
+      header: 'Viscosity',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.viscosity || '—'}</span>,
+    },
+    {
+      key: 'engine_type',
+      header: 'Engine Type',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.engine_type || '—'}</span>,
+    },
+    {
+      key: 'volume_liters',
+      header: 'Volume Liters',
+      align: 'right',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.volume_liters ?? '—'}</span>,
+    },
+    {
+      key: 'specification',
+      header: 'Specification',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.specification || '—'}</span>,
+    },
+    {
+      key: 'interval_km',
+      header: 'Interval Km',
+      align: 'right',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.interval_km ?? '—'}</span>,
+    },
+    {
+      key: 'description',
+      header: 'Description',
+      cellClassName: 'max-w-xs',
+      cell: (row) => <span className="line-clamp-2 text-sm text-muted-foreground">{row.description || '—'}</span>,
+    },
+    {
+      key: 'synonyms',
+      header: 'Synonyms',
+      cellClassName: 'max-w-xs',
+      cell: (row) => <span className="line-clamp-2 text-sm text-muted-foreground">{row.synonyms || '—'}</span>,
+    },
+    {
+      key: 'image_url',
+      header: 'Image Url',
       cell: (row) =>
-        row.service_offered && row.service_name ? (
-          <span className="text-xs text-muted-foreground">
-            {row.service_name}
-            {row.service_price != null && <span className="text-muted-foreground"> · {formatKwanza(row.service_price)}</span>}
-          </span>
+        row.image_url ? (
+          <a href={row.image_url} target="_blank" rel="noreferrer" className="text-sm font-semibold text-primary underline">
+            View
+          </a>
         ) : (
-          <span className="text-xs text-muted-foreground">—</span>
+          <span className="text-sm text-muted-foreground">—</span>
         ),
+    },
+    {
+      key: 'status',
+      header: 'Status',
+      align: 'center',
+      cell: (row) => (
+        <span
+          className={`inline-flex rounded-full border px-2.5 py-1 text-sm font-bold ${
+            row.active === false
+              ? 'border-border bg-muted text-muted-foreground'
+              : 'border-success/30 bg-success/10 text-success'
+          }`}
+        >
+          {row.active === false ? 'Inactive' : 'Active'}
+        </span>
+      ),
     },
     {
       key: 'actions',
@@ -133,12 +301,12 @@ export function ProductsGrid({
             actions={[
               { label: 'View product', icon: Eye, onClick: () => setDetailProduct({ product: row, editing: false }) },
               { label: 'Edit product', icon: Pencil, onClick: () => setDetailProduct({ product: row, editing: true }) },
-              {
-                label: 'Delete product',
-                icon: Trash2,
-                destructive: true,
-                onClick: () => handleDelete(row),
-              },
+              ...(row.active === false
+                ? [
+                    { label: 'Activate product', icon: CheckCircle2, onClick: () => handleActivate(row) },
+                    { label: 'Delete product', icon: Trash2, destructive: true, onClick: () => handleDelete(row) },
+                  ]
+                : [{ label: 'Deactivate product', icon: Ban, destructive: true, onClick: () => handleDeactivate(row) }]),
             ]}
           />
         </div>
