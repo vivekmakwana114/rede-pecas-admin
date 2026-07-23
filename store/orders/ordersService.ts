@@ -24,9 +24,10 @@ export const getPaymentProof = (number: string) => {
   return api.get(`/admin/orders/${encodeURIComponent(number)}/payment/proof`, { responseType: 'blob' });
 };
 
-// Soft-deletes the order (backend moves it to a 'cancelled' status rather
-// than a hard delete — see order.controller.ts). Only valid for a
-// non-terminal order (not yet approved/rejected/cancelled).
+// Hides the order from the admin grid only (backend sets admin_hidden) —
+// never touches the order's real status, never notifies the customer. Only
+// valid once the order is already 'approved' (409 otherwise) — see
+// order.controller.ts's deleteOrderHandler/hideApprovedOrder.
 export const cancelOrder = (number: string) => {
   return api.delete(`/admin/orders/${encodeURIComponent(number)}`);
 };
