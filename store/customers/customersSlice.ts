@@ -16,14 +16,6 @@ interface RawVehicle {
   plate: string | null;
 }
 
-// Confirmed shape from GET /admin/customers (customer.model.ts/
-// customer.controller.ts): a paginated envelope — { customers, total, page,
-// limit } — not a flat array, and customers are keyed by phone (no numeric
-// id). orders_count/total_spent/vehicles are a LATERAL-joined aggregate
-// (see CUSTOMER_STATS_JOIN in customer.model.ts) — total_spent sums only
-// approved orders (same "money actually collected" convention as the
-// dashboard's Revenue card), vehicles only includes confirmed ones (an
-// in-progress manual-entry wizard row isn't a real vehicle yet).
 interface RawCustomer {
   phone: string;
   name: string | null;
@@ -68,6 +60,10 @@ const initialState: CustomersState = {
   error: null,
 };
 
+/**
+ * Maps a raw API vehicle payload to the UI's Vehicle shape, substituting
+ * a placeholder dash for any missing make/model/plate field.
+ */
 function toVehicle(raw: RawVehicle): Vehicle {
   return {
     make: raw.make || '—',
@@ -77,6 +73,10 @@ function toVehicle(raw: RawVehicle): Vehicle {
   };
 }
 
+/**
+ * Maps a raw API customer payload to the UI's Customer shape, defaulting
+ * the display name to the phone number and normalizing total spend/vehicles.
+ */
 function toCustomer(raw: RawCustomer): Customer {
   return {
     id: raw.phone,
@@ -92,6 +92,10 @@ function toCustomer(raw: RawCustomer): Customer {
   };
 }
 
+/**
+ * Pulls a human-readable message out of an Axios error's response body,
+ * falling back to the error's own message or a given default.
+ */
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(err)) {
     return err.response?.data?.message || err.message || fallback;
@@ -99,6 +103,10 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Fetches all customers from the API and maps the raw response rows
+ * (including nested vehicles) into the normalized Customer shape.
+ */
 export const fetchCustomers = createAsyncThunk('customers/fetchCustomers', async (_: void, { rejectWithValue }) => {
   try {
     const res = await customersService.getCustomers();
@@ -108,6 +116,10 @@ export const fetchCustomers = createAsyncThunk('customers/fetchCustomers', async
   }
 });
 
+/**
+ * Updates a customer's editable fields via the API and returns their phone
+ * number so the reducer can identify which customer to refresh.
+ */
 export const updateCustomer = createAsyncThunk(
   'customers/updateCustomer',
   async ({ phone, fields }: { phone: string; fields: CustomerUpdateFields }, { rejectWithValue }) => {
@@ -120,6 +132,10 @@ export const updateCustomer = createAsyncThunk(
   },
 );
 
+/**
+ * Deletes a customer via the API and returns their phone number so the
+ * reducer can remove them from state.
+ */
 export const deleteCustomer = createAsyncThunk(
   'customers/deleteCustomer',
   async (phone: string, { rejectWithValue }) => {

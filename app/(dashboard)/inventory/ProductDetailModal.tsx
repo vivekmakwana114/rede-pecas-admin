@@ -10,16 +10,16 @@ import { Section, InfoRow } from '@/components/DetailPanel';
 const baseInputClassName =
   'w-full rounded-lg border px-3 py-2 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
 
+/**
+ * Builds the Tailwind classes for a form input, swapping in a destructive
+ * border color when a validation error message is present for that field.
+ */
 function fieldInputClassName(hasError?: string) {
   return `${baseInputClassName} ${hasError ? 'border-destructive' : 'border-input'}`;
 }
 
 const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
 
-// Mirrors SUBCATEGORY_TO_SERVICE_CATEGORY in the backend's
-// src/constants/serviceCategory.ts — the admin has no endpoint to fetch this
-// mapping dynamically, so it's kept in sync here by hand. Only these 8
-// values are accepted by the backend's Joi schema (productUpdate).
 const SUBCATEGORY_OPTIONS = [
   'Engine Oil',
   'Filtration',
@@ -61,9 +61,8 @@ type FormState = {
 };
 
 /**
- * Every required field must actually be filled in — a blank Price/Quantity
- * string coerces to 0 via Number(''), which would otherwise sail through
- * silently as "valid" data instead of being caught as missing.
+ * Validates the product edit form, returning a map of field name to error
+ * message for any required or malformed fields (name, reference, price, quantity, supplier).
  */
 function validate(form: FormState): Record<string, string> {
   const errors: Record<string, string> = {};
@@ -88,24 +87,19 @@ function validate(form: FormState): Record<string, string> {
   return errors;
 }
 
-/** Inline error text under a field — absent entirely when there's nothing wrong with it. */
+/**
+ * Renders a small destructive-colored error line below a form field, or
+ * nothing when no message is passed.
+ */
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="mt-1 text-2xs font-normal text-destructive">{message}</p>;
 }
 
 /**
- * View/edit side panel for a single product — slides in from the right
- * (matching ImportPanel's drawer, rather than a centered dialog) with fields
- * grouped into sections: Classification, Vehicle Fit, Lubricant Specs
- * (only when relevant), Catalog Info, Stock & Pricing, and Supplier. Every
- * field is editable, including the supplier's own name/address/phone —
- * editing those updates the shared supplier row (so every other product
- * from the same supplier reads the change too), not the product's own
- * (supplier_id, reference) identity. There's no dedicated supplier
- * management screen yet, so this panel doubles as it. service_category is
- * never directly editable — the backend recomputes it from subcategory (see
- * updateProductHandler), so it's shown read-only here.
+ * Slide-over panel showing a single product's full detail, either as a
+ * read-only summary or (when `initialEditing` is true) an editable form that
+ * saves changes back to the inventory store.
  */
 export function ProductDetailModal({
   product,
@@ -119,11 +113,6 @@ export function ProductDetailModal({
   onSaved: (message: string) => void;
 }) {
   const dispatch = useAppDispatch();
-  // Fixed for this modal's lifetime — set once from which row action opened
-  // it ("View product" vs "Edit product"). Cancel/Save both close the panel
-  // (onClose) rather than switching back to a read-only view within the same
-  // instance, so there's no in-modal transition that would need this to be
-  // mutable state.
   const editing = initialEditing;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -157,13 +146,19 @@ export function ProductDetailModal({
     description: product.description ?? '',
   });
 
-  // Clears a field's error the moment the admin edits it, rather than making
-  // them resubmit blind to find out if their fix actually worked.
+  /**
+   * Updates a single field in the form state and clears any existing
+   * validation error for that field.
+   */
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: '' } : prev));
   }
 
+  /**
+   * Validates the form, and if it passes, dispatches `updateProduct` with the
+   * edited fields, then notifies the caller and closes the modal on success.
+   */
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
 

@@ -4,6 +4,11 @@ import { useEffect, useState } from 'react';
 import { Check, Loader2, TriangleAlert, X } from 'lucide-react';
 import { getPaymentProof } from '@/store/orders/ordersService';
 
+/**
+ * Modal that fetches and displays an order's uploaded payment proof (image or
+ * PDF) as a blob URL, with Approve/Reject actions shown when the order is
+ * still reviewable.
+ */
 export function PaymentProofModal({
   number,
   mediaType,
@@ -14,8 +19,6 @@ export function PaymentProofModal({
 }: {
   number: string;
   mediaType?: 'image' | 'document' | null;
-  /** Only pending orders can still be approved/rejected — everything else
-   *  (already approved/rejected) is shown here purely for audit viewing. */
   reviewable: boolean;
   onClose: () => void;
   onApprove: (number: string) => void;
@@ -72,7 +75,6 @@ export function PaymentProofModal({
           ) : mediaType === 'document' ? (
             <iframe src={objectUrl} title="Payment proof PDF" className="h-[65vh] w-full rounded-lg border border-border" />
           ) : (
-            // eslint-disable-next-line @next/next/no-img-element
             <img src={objectUrl} alt="Payment proof" className="max-h-[65vh] w-full rounded-lg object-contain" />
           )}
         </div>

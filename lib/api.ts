@@ -10,6 +10,10 @@ export const api = axios.create({
   },
 });
 
+/**
+ * Attaches the stored access token (from localStorage or sessionStorage)
+ * as a Bearer Authorization header on every outgoing request, if present.
+ */
 api.interceptors.request.use(
   (config) => {
     if (typeof window !== 'undefined') {
@@ -21,7 +25,6 @@ api.interceptors.request.use(
             config.headers.Authorization = `Bearer ${tokens.access.token}`;
           }
         } catch {
-          // malformed storage — request goes out unauthenticated
         }
       }
     }
@@ -30,17 +33,18 @@ api.interceptors.request.use(
   (error) => Promise.reject(error),
 );
 
-// Guard against multiple simultaneous 401s each trying to redirect
 let isRedirectingToLogin = false;
 
+/**
+ * On a 401 response outside the auth endpoints themselves, clears the stored
+ * session and redirects to the login page (showing a brief loading overlay),
+ * guarding against triggering more than one redirect at a time.
+ */
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     const status = error.response?.status;
     const url: string = error.config?.url ?? '';
-    // A 401 from these endpoints is a domain-level answer the caller already
-    // handles (bad credentials, wrong current password) — not proof the
-    // session itself is dead, so it shouldn't force a global logout.
     const isAuthEndpoint =
       url.includes('/admin/login') || url.includes('/admin/refresh') || url.includes('/admin/change/password');
 

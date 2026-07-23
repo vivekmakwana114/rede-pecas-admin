@@ -8,12 +8,20 @@ import axios from 'axios';
 import { forgotPassword } from '@/store/auth/authService';
 import { BrandMark } from '@/components/BrandMark';
 
+/**
+ * Renders the "forgot password" screen: a form that collects the customer's
+ * WhatsApp number and requests a verification code, then routes to the reset page.
+ */
 export function ForgotPasswordForm() {
   const router = useRouter();
   const [phone, setPhone] = useState('');
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
 
+  /**
+   * Submits the phone number to request a WhatsApp reset code, then
+   * navigates to the reset-password page; shows an error message on failure.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');

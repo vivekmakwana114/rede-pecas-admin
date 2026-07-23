@@ -12,6 +12,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ProductDetailModal } from './ProductDetailModal';
 import type { Product } from './types';
 
+/**
+ * Renders the searchable products grid with row-level actions (view, edit,
+ * activate/deactivate, delete) and the modals/confirm dialogs those actions open.
+ */
 export function ProductsGrid({
   showToast,
   onImportClick,
@@ -34,10 +38,10 @@ export function ProductsGrid({
     dispatch(fetchProducts());
   }, [dispatch]);
 
-  // Reversible — flips active to false via PATCH (updateProduct). The
-  // product stays out of customer search but stays listed here (see
-  // getProductsHandler on the backend), and is only reachable to permanently
-  // delete once it's in this state — see handleDelete below.
+  /**
+   * Opens a confirm dialog that, when accepted, dispatches `updateProduct`
+   * to mark the product inactive and refreshes the product list.
+   */
   const handleDeactivate = (product: Product) => {
     setConfirmDialog({
       title: `Deactivate product ${product.name}?`,
@@ -56,8 +60,10 @@ export function ProductsGrid({
     });
   };
 
-  // Reverse of deactivate — only reachable once a product is already
-  // inactive. No confirmation needed: re-activating isn't destructive.
+  /**
+   * Dispatches `updateProduct` to mark the product active again and refreshes
+   * the product list, showing a toast on success or failure.
+   */
   const handleActivate = async (product: Product) => {
     const result = await dispatch(updateProduct({ id: product.id, fields: { active: true } }));
     if (updateProduct.fulfilled.match(result)) {
@@ -68,12 +74,10 @@ export function ProductsGrid({
     }
   };
 
-  // Permanent — only enabled once a product is already inactive (the
-  // backend rejects DELETE /admin/products/:id with a 409 otherwise, see
-  // hardDeleteProduct), so this action only ever shows up on inactive rows.
-  // A product still referenced by an existing order/waitlist entry can't be
-  // deleted at all — the backend turns that into a 409 too, shown via the
-  // toast's error message instead of a generic failure.
+  /**
+   * Opens a confirm dialog that, when accepted, dispatches `deleteProduct`
+   * to permanently remove the product and refreshes the product list.
+   */
   const handleDelete = (product: Product) => {
     setConfirmDialog({
       title: `Permanently delete product ${product.name}?`,
@@ -100,15 +104,6 @@ export function ProductsGrid({
     );
   }, [products, query]);
 
-  // One column per column in produtos_rede_pecas_via_pecas_v3_EN.csv, in file
-  // order (name;supplier;category;subcategory;reference;oem_reference;
-  // part_brand;price;quantity;delivery_time;vehicle_make;vehicle_model;
-  // year_start;year_end;engine;engine_number;viscosity;engine_type;
-  // volume_liters;specification;interval_km;description;synonyms;image_url)
-  // — no combining fields into a single cell, so what's in the grid matches
-  // what's in the file 1:1. `active` gets its own Status column at the end
-  // instead of following the file's column position, since it's shown as a
-  // badge tied to the row actions rather than plain imported data.
   const columns: GridColumn<Product>[] = [
     {
       key: 'name',

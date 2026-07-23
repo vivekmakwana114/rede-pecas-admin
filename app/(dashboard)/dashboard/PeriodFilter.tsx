@@ -8,6 +8,10 @@ const PERIODS: { value: AnalyticsPeriod; label: string }[] = [
   { value: 'yearly', label: 'Yearly' },
 ];
 
+/**
+ * Segmented control for switching the dashboard analytics period between
+ * daily, monthly and yearly views.
+ */
 export function PeriodFilter({
   period,
   onPeriodChange,

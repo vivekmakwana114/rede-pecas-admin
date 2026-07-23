@@ -14,10 +14,9 @@ export interface RowAction {
 const MENU_WIDTH = 176;
 
 /**
- * Row-level "⋮" menu rendered via portal to document.body — Grid's table
- * wrapper scrolls (overflow-x-auto), which would clip an absolutely
- * positioned menu, so this measures the trigger button and renders fixed
- * at that position instead.
+ * Kebab-menu button that opens a portal-rendered dropdown of row actions,
+ * positioned against the trigger button and dismissed on outside click,
+ * escape, or scroll.
  */
 export function RowActionsMenu({ actions }: { actions: RowAction[] }) {
   const [open, setOpen] = useState(false);
@@ -47,6 +46,10 @@ export function RowActionsMenu({ actions }: { actions: RowAction[] }) {
     };
   }, [open]);
 
+  /**
+   * Opens or closes the actions menu, computing its screen position
+   * relative to the trigger button when opening.
+   */
   const toggle = () => {
     if (!open && buttonRef.current) {
       const rect = buttonRef.current.getBoundingClientRect();

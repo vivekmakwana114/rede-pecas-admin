@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 
-/** Groups related fields under a small uppercase heading — shared by every right-side detail drawer (product, order) for a consistent look. */
+/**
+ * Labeled card wrapper used to group related fields in a detail view,
+ * rendering a title above its children.
+ */
 export function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div>
@@ -10,7 +13,10 @@ export function Section({ title, children }: { title: string; children: ReactNod
   );
 }
 
-/** A read-only label/value pair inside a Section. */
+/**
+ * Renders a single label/value pair on one line, right-aligning the value.
+ * Used inside a Section to lay out a detail view's fields.
+ */
 export function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-4">

@@ -1,5 +1,9 @@
 import type { ToastState } from './useToast';
 
+/**
+ * Fixed-position toast notification, styled by type (success/error/info).
+ * Renders nothing while the given toast state is hidden.
+ */
 export function Toast({ toast }: { toast: ToastState }) {
   if (!toast.show) return null;
 

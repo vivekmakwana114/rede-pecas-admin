@@ -10,14 +10,16 @@ import { Section, InfoRow } from '@/components/DetailPanel';
 const baseInputClassName =
   'w-full rounded-lg border px-3 py-2 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
 
+/**
+ * Builds the Tailwind classes for a form input, swapping in a destructive
+ * border color when a validation error message is present for that field.
+ */
 function fieldInputClassName(hasError?: string) {
   return `${baseInputClassName} ${hasError ? 'border-destructive' : 'border-input'}`;
 }
 
 const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
 
-// Mirrors SERVICE_CATEGORIES in the backend's src/constants/serviceCategory.ts
-// — the only 3 values the backend's Joi schema (serviceUpdate) accepts.
 const SERVICE_CATEGORY_OPTIONS = ['maintenance', 'general_mechanics', 'diagnostics'];
 
 type FormState = {
@@ -35,8 +37,8 @@ type FormState = {
 };
 
 /**
- * Mirrors ProductDetailModal's validate() — same required-field rules,
- * adapted to the service domain's own required fields.
+ * Validates the service edit form, returning a map of field name to error
+ * message for any required or malformed fields (name, category, price, duration, provider name).
  */
 function validate(form: FormState): Record<string, string> {
   const errors: Record<string, string> = {};
@@ -61,20 +63,19 @@ function validate(form: FormState): Record<string, string> {
   return errors;
 }
 
-/** Inline error text under a field — absent entirely when there's nothing wrong with it. */
+/**
+ * Renders a small destructive-colored error line below a form field, or
+ * nothing when no message is passed.
+ */
 function FieldError({ message }: { message?: string }) {
   if (!message) return null;
   return <p className="mt-1 text-2xs font-normal text-destructive">{message}</p>;
 }
 
 /**
- * View/edit side panel for a single service — mirrors ProductDetailModal's
- * drawer layout (Service / Provider sections). Editing the provider's own
- * name/address/province/phone updates the shared service_providers row (so
- * every other service from the same provider reads the change too), not
- * this service's own (provider_id, service_name) identity — same rationale
- * as ProductDetailModal's supplier fields. There's no dedicated provider
- * management screen yet, so this panel doubles as it.
+ * Slide-over panel showing a single service's full detail, either as a
+ * read-only summary or (when `initialEditing` is true) an editable form that
+ * saves changes back to the services store.
  */
 export function ServiceDetailModal({
   service,
@@ -88,11 +89,6 @@ export function ServiceDetailModal({
   onSaved: (message: string) => void;
 }) {
   const dispatch = useAppDispatch();
-  // Fixed for this modal's lifetime — set once from which row action opened
-  // it ("View service" vs "Edit service"). Cancel/Save both close the panel
-  // (onClose) rather than switching back to a read-only view within the same
-  // instance, so there's no in-modal transition that would need this to be
-  // mutable state.
   const editing = initialEditing;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -111,11 +107,19 @@ export function ServiceDetailModal({
     providerPhone: service.provider_phone ?? '',
   });
 
+  /**
+   * Updates a single field in the form state and clears any existing
+   * validation error for that field.
+   */
   function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
     setForm((prev) => ({ ...prev, [key]: value }));
     setFieldErrors((prev) => (prev[key] ? { ...prev, [key]: '' } : prev));
   }
 
+  /**
+   * Validates the form, and if it passes, dispatches `updateService` with the
+   * edited fields, then notifies the caller and closes the modal on success.
+   */
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
 

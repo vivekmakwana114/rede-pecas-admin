@@ -12,11 +12,6 @@ export interface Product {
   supplier_id?: number;
   supplier_address?: string | null;
   supplier_phone?: string | null;
-  // Catalog fields from the 2026-07 products CSV import (see db/schema.sql
-  // products table on the backend). All nullable except category/subcategory/
-  // service_category/vehicle_make/delivery_time/synonyms/description, which
-  // are NOT NULL server-side but may still be absent on API responses typed
-  // loosely here.
   brand?: string | null;
   oem_reference?: string | null;
   synonyms?: string;
@@ -37,9 +32,6 @@ export interface Product {
   specification?: string | null;
   interval_km?: number | null;
   image_url?: string | null;
-  // Reversible soft-delete flag — the admin list includes inactive products
-  // (unlike the customer-facing catalog) so a deactivated one stays reachable
-  // to toggle back on. See product.controller.ts's getProductsHandler.
   active?: boolean;
 }
 
@@ -76,9 +68,6 @@ export interface ProductUpdateFields {
 export interface UploadResult {
   inserted: number;
   updated: number;
-  // Rows the server's file-upload importer skipped rather than rejecting the
-  // whole file for (missing/invalid required field, unknown subcategory,
-  // etc.) — see product.service.ts's validateRow on the backend.
   skipped?: { row: number; reasons: string[] }[];
 }
 
@@ -100,6 +89,10 @@ const initialState: InventoryState = {
   upload: { status: 'idle', result: null, error: null },
 };
 
+/**
+ * Pulls a human-readable message out of an Axios error's response body,
+ * falling back to the error's own message or a given default.
+ */
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(err)) {
     return err.response?.data?.message || err.message || fallback;
@@ -107,6 +100,9 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Fetches the product list from the API for the inventory table.
+ */
 export const fetchProducts = createAsyncThunk('inventory/fetchProducts', async (_: void, { rejectWithValue }) => {
   try {
     const res = await inventoryService.getProducts();
@@ -116,6 +112,10 @@ export const fetchProducts = createAsyncThunk('inventory/fetchProducts', async (
   }
 });
 
+/**
+ * Uploads a stock file to the API for bulk product import and returns the
+ * insert/update/skip results for display.
+ */
 export const importInventory = createAsyncThunk(
   'inventory/importInventory',
   async (file: File, { rejectWithValue }) => {
@@ -128,6 +128,10 @@ export const importInventory = createAsyncThunk(
   },
 );
 
+/**
+ * Updates a product via the API and returns its id so the reducer can
+ * identify the affected entry (list refresh is handled by the caller).
+ */
 export const updateProduct = createAsyncThunk(
   'inventory/updateProduct',
   async ({ id, fields }: { id: number; fields: ProductUpdateFields }, { rejectWithValue }) => {
@@ -140,12 +144,10 @@ export const updateProduct = createAsyncThunk(
   },
 );
 
-// Permanently deletes the product (backend rejects with a 409 unless it's
-// already inactive — deactivate first via updateProduct's `active: false`;
-// see hardDeleteProduct/deleteProductHandler on the backend, and
-// ProductsGrid's handleDeactivate/handleActivate/handleDelete for how the
-// three actions fit together). A 409 for "still active" or "still
-// referenced by an order" surfaces here as the rejected payload's message.
+/**
+ * Deletes a product via the API and returns its id so the reducer can
+ * identify the affected entry (list refresh is handled by the caller).
+ */
 export const deleteProduct = createAsyncThunk(
   'inventory/deleteProduct',
   async (id: number, { rejectWithValue }) => {
@@ -162,32 +164,39 @@ const inventorySlice = createSlice({
   name: 'inventory',
   initialState,
   reducers: {
+    /** Resets the upload sub-state back to idle, clearing any prior result or error. */
     resetUpload(state) {
       state.upload = { status: 'idle', result: null, error: null };
     },
   },
   extraReducers: (builder) => {
     builder
+      /** Marks the product list fetch as in progress. */
       .addCase(fetchProducts.pending, (state) => {
         state.status = 'loading';
       })
+      /** Stores the fetched product list on success. */
       .addCase(fetchProducts.fulfilled, (state, action: PayloadAction<Product[]>) => {
         state.status = 'succeeded';
         state.error = null;
         state.products = action.payload;
       })
+      /** Records the error message when the product fetch fails. */
       .addCase(fetchProducts.rejected, (state, action) => {
         state.status = 'failed';
         state.error = (action.payload as string) || 'Failed to load products.';
       })
+      /** Marks the inventory upload as in progress and clears any previous error. */
       .addCase(importInventory.pending, (state) => {
         state.upload.status = 'loading';
         state.upload.error = null;
       })
+      /** Stores the import result (inserted/updated/skipped counts) on success. */
       .addCase(importInventory.fulfilled, (state, action: PayloadAction<UploadResult>) => {
         state.upload.status = 'succeeded';
         state.upload.result = action.payload;
       })
+      /** Records the error message when the inventory import fails. */
       .addCase(importInventory.rejected, (state, action) => {
         state.upload.status = 'failed';
         state.upload.error = (action.payload as string) || 'Failed to import the stock file.';

@@ -9,6 +9,10 @@ interface StatCard {
   valueClassName?: string;
 }
 
+/**
+ * Renders the pending/approved/rejected order counts as a row of three
+ * summary stat cards above the orders grid.
+ */
 export function StatsPanel({
   pendingCount,
   approvedCount,

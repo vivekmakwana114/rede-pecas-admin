@@ -11,6 +11,11 @@ import { BrandMark } from '@/components/BrandMark';
 
 const HAS_SPECIAL_CHAR = /[^A-Za-z0-9]/;
 
+/**
+ * Renders the "set new password" screen: takes the WhatsApp verification code
+ * and a new password (with live requirement checks), submits the reset, and
+ * shows a success state once the password has been changed.
+ */
 export function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -26,6 +31,11 @@ export function ResetPasswordForm() {
   const hasMinLength = newPassword.length >= 8;
   const hasSpecialChar = HAS_SPECIAL_CHAR.test(newPassword);
 
+  /**
+   * Validates the new password against the requirements and confirmation
+   * match, then submits the reset request; marks the form as done on success
+   * or shows an error on failure.
+   */
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -155,6 +165,10 @@ export function ResetPasswordForm() {
   );
 }
 
+/**
+ * Renders a single password-requirement row, showing a check icon styled
+ * as met or unmet depending on the `met` flag.
+ */
 function ChecklistItem({ met, label }: { met: boolean; label: string }) {
   return (
     <li className="flex items-center gap-2 text-xs">

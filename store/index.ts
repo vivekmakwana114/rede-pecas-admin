@@ -6,6 +6,10 @@ import servicesReducer from './services/servicesSlice';
 import customersReducer from './customers/customersSlice';
 import analyticsReducer from './analytics/analyticsSlice';
 
+/**
+ * Configures the root Redux store, combining every feature slice
+ * (auth, orders, inventory, services, customers, analytics) into one state tree.
+ */
 export const store = configureStore({
   reducer: {
     auth: authReducer,

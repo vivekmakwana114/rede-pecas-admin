@@ -14,12 +14,8 @@ const baseInputClassName =
 const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
 
 /**
- * View/edit side panel for a single customer — slides in from the right,
- * matching ProductDetailModal/OrderDetailModal's drawer (same header shape,
- * Section/InfoRow grouping) instead of the centered dl-based dialog this used
- * to be. Phone is never editable — it's the backend's primary key
- * (customers.phone), not just a display field, so it stays in the header
- * subtitle rather than an edit field.
+ * Slide-in panel showing a single customer's profile, vehicles and order
+ * activity, with an inline edit mode for updating their profile fields.
  */
 export function CustomerDetailModal({
   customer,
@@ -43,6 +39,10 @@ export function CustomerDetailModal({
     email: customer.email ?? '',
   });
 
+  /**
+   * Submits the edited profile fields to the API and, on success, notifies
+   * the parent and closes the modal; otherwise surfaces the error inline.
+   */
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
     setSaving(true);

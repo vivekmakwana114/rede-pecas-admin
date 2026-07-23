@@ -1,7 +1,3 @@
-/** Every raw backend order status (orders.status in db/schema.sql) — distinct
- *  from STATUS_LABELS in OrderDetailModal.tsx, which only covers the 4
- *  frontend bucket keys. Used for the "View Order" modal, which fetches the
- *  full order row (including the raw status) via GET /admin/orders/:number. */
 export const RAW_STATUS_LABELS: Record<string, string> = {
   awaiting_payment: 'Awaiting Payment Setup',
   awaiting_stock_confirmation: 'Awaiting Stock Confirmation',

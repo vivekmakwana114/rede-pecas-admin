@@ -15,6 +15,10 @@ import { VehiclePlate } from './VehiclePlate';
 import { CustomerDetailModal } from './CustomerDetailModal';
 import type { Customer } from './types';
 
+/**
+ * Customers list page: a searchable, sortable grid of customers with their
+ * vehicles and order stats, plus actions to view, edit or delete a customer.
+ */
 export default function CustomersPage() {
   const dispatch = useAppDispatch();
   const { customers, status } = useAppSelector((state) => state.customers);
@@ -32,6 +36,10 @@ export default function CustomersPage() {
     dispatch(fetchCustomers());
   }, [dispatch]);
 
+  /**
+   * Opens a confirmation dialog for deleting the given customer, and on
+   * confirm dispatches the delete and refreshes the customer list.
+   */
   const handleDelete = (customer: Customer) => {
     setConfirmDialog({
       title: `Delete customer ${customer.name}?`,

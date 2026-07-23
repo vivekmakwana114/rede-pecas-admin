@@ -10,6 +10,10 @@ interface StatCard {
   valueClassName?: string;
 }
 
+/**
+ * Grid of summary stat cards (customers, products, orders, revenue) shown
+ * at the top of the dashboard.
+ */
 export function StatsGrid({
   totalCustomers,
   totalProducts,

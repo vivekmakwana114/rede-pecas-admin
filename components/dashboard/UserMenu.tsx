@@ -7,6 +7,10 @@ import { ChevronDown, LogOut, UserRound } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { logout } from '@/store/auth/authSlice';
 
+/**
+ * Header dropdown showing the signed-in admin's name with links to their
+ * profile and a log-out action, closing itself on outside click.
+ */
 export function UserMenu() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -25,10 +29,10 @@ export function UserMenu() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [open]);
 
+  /**
+   * Clears the authenticated session and redirects the admin to the login page.
+   */
   const handleLogout = () => {
-    // Not awaited — the user is logging out either way, so the redirect
-    // shouldn't block on the backend revoke call (see authSlice.ts's logout
-    // thunk, which fires it and always resolves regardless of outcome).
     dispatch(logout());
     router.push('/login');
   };

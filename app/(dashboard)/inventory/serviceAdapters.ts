@@ -12,9 +12,6 @@ type OptionalField =
   | 'baseTravelFee'
   | 'logisticsFeeNotes';
 
-// Mirrors service.service.ts's HEADER_ALIASES_SERVICES/REQUIRED_COLUMNS_SERVICES
-// on the backend — a provider needs a name, a service needs a name/category/
-// base price/duration; everything else is optional.
 const COLUMN_ALIASES: Record<RequiredField, string[]> = {
   providerName: ['Provider Name', 'provider_name', 'fornecedor_servico'],
   serviceName: ['Service Name', 'service_name', 'nome_servico'],
@@ -23,8 +20,6 @@ const COLUMN_ALIASES: Record<RequiredField, string[]> = {
   serviceDurationH: ['Service Duration H', 'service_duration_h', 'duracao_servico_h'],
 };
 
-// Not required columns — a file with no provider address/rating/etc. simply
-// won't have these headers, so they're never checked against missingColumns.
 const OPTIONAL_COLUMN_ALIASES: Record<OptionalField, string[]> = {
   providerAddress: ['Address', 'address', 'endereco'],
   providerProvince: ['Province', 'province', 'provincia'],
@@ -45,18 +40,18 @@ const FIELD_LABELS: Record<RequiredField, string> = {
   serviceDurationH: 'Service Duration H',
 };
 
-// Values a spreadsheet author would plausibly type in a yes/no column —
-// mirrors YES_VALUES in service.service.ts on the backend.
 const YES_VALUES = new Set(['yes', 'sim', 'true', '1']);
 
 export interface ServiceParseResult {
   items: ServiceUploadItemPayload[];
-  /** Rows dropped because they lacked a provider name or service name value. */
   skippedCount: number;
-  /** Required fields that had no matching header anywhere in the sheet. */
   missingColumns: string[];
 }
 
+/**
+ * Returns the first non-empty value found in `row` for any of the given
+ * column-name aliases, letting the parser accept differently-named spreadsheet headers.
+ */
 function pick(row: Record<string, unknown>, aliases: string[]): unknown {
   for (const alias of aliases) {
     if (row[alias] !== undefined && row[alias] !== '') return row[alias];
@@ -64,8 +59,11 @@ function pick(row: Record<string, unknown>, aliases: string[]): unknown {
   return undefined;
 }
 
-// See adapters.ts's parseWorkbookRows for why headerRow (not the parsed data
-// rows' keys) is what missing-column detection must read.
+/**
+ * Transforms raw spreadsheet rows into `ServiceUploadItemPayload` objects the
+ * import API expects, reporting any required columns missing from the header
+ * and skipping rows that lack a provider name, service name, or category.
+ */
 export function parseServiceWorkbookRows(rawRows: Record<string, unknown>[], headerRow: unknown[] = []): ServiceParseResult {
   const headers = new Set<string>(headerRow.map((h) => String(h ?? '').trim()));
 

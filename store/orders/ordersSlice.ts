@@ -4,21 +4,6 @@ import * as ordersService from './ordersService';
 
 export type OrderStatus = 'pending' | 'approved' | 'rejected' | 'stockConfirmation';
 
-/**
- * Confirmed shape from GET /admin/orders — price arrives as a string (e.g.
- * "2500.00"), and `customer` is just the WhatsApp number, no separate name
- * field. Extend this once other statuses/endpoints are confirmed to carry
- * more fields (e.g. `pending` may include reference/supplier — unconfirmed,
- * it was empty in the sample response).
- *
- * `stock_status` and the `service_*` fields aren't sent by the backend yet
- * (tracked alongside the `time`-format fix) — optional here so the UI can
- * render them the moment the API adds them, with a bucket-derived fallback
- * in adapters.ts until then. `service_price` accepts string or number since
- * we don't yet know which this endpoint will serialize it as (Product's
- * equivalent field arrives as a number, but this endpoint sends `price` as
- * a string).
- */
 export interface RawOrderItem {
   number: string;
   customer: string;
@@ -26,7 +11,6 @@ export interface RawOrderItem {
   quantity?: number;
   part: string;
   time: string;
-  /** ISO timestamp, pending bucket only — see OrderRow.lastChangedAt. */
   updated_at?: string;
   has_proof?: boolean;
   payment_proof_media_type?: 'image' | 'document' | null;
@@ -63,10 +47,6 @@ interface OrdersResponseData {
   stockConfirmation: RawOrderItem[];
 }
 
-// All-time platform totals — from GET /admin/orders/stats, deliberately
-// separate from the pending/approved/rejected/stockConfirmation buckets
-// above, which are today-scoped queues for the Orders page's daily log
-// (see getOrderStats in order.model.ts on the backend for why).
 export interface OrderStats {
   totalOrders: number;
   approvedOrders: number;
@@ -110,6 +90,10 @@ const initialState: OrdersState = {
   statsStatus: 'idle',
 };
 
+/**
+ * Maps a raw order payload to the UI's OrderItem shape, coercing
+ * price/quantity/service_price to numbers (or null when absent).
+ */
 function toOrderItem(raw: RawOrderItem): OrderItem {
   return {
     ...raw,
@@ -119,6 +103,10 @@ function toOrderItem(raw: RawOrderItem): OrderItem {
   };
 }
 
+/**
+ * Pulls a human-readable message out of an Axios error's response body,
+ * falling back to the error's own message or a given default.
+ */
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(err)) {
     return err.response?.data?.message || err.message || fallback;
@@ -126,6 +114,10 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Fetches orders (optionally scoped to today) from the API and normalizes
+ * the raw price/quantity/service-price fields into numbers.
+ */
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
   async (range: 'today' | 'all' = 'all', { rejectWithValue }) => {
@@ -138,6 +130,10 @@ export const fetchOrders = createAsyncThunk(
   }
 );
 
+/**
+ * Fetches aggregate order stats from the API and normalizes the raw
+ * revenue string into a number.
+ */
 export const fetchOrderStats = createAsyncThunk('orders/fetchOrderStats', async (_: void, { rejectWithValue }) => {
   try {
     const res = await ordersService.getOrderStats();
@@ -148,6 +144,10 @@ export const fetchOrderStats = createAsyncThunk('orders/fetchOrderStats', async 
   }
 });
 
+/**
+ * Approves or rejects an order via the API and returns its order number so
+ * the caller can refresh the affected list.
+ */
 export const reviewOrder = createAsyncThunk(
   'orders/reviewOrder',
   async ({ number, approved }: { number: string; approved: boolean }, { rejectWithValue }) => {
@@ -162,6 +162,10 @@ export const reviewOrder = createAsyncThunk(
   }
 );
 
+/**
+ * Confirms or denies stock availability for an order via the API and
+ * returns its order number so the caller can refresh the affected list.
+ */
 export const confirmOrderStock = createAsyncThunk(
   'orders/confirmOrderStock',
   async ({ number, available }: { number: string; available: boolean }, { rejectWithValue }) => {
@@ -176,6 +180,10 @@ export const confirmOrderStock = createAsyncThunk(
   }
 );
 
+/**
+ * Cancels an order via the API and returns its order number so the caller
+ * can refresh the affected list.
+ */
 export const cancelOrder = createAsyncThunk(
   'orders/cancelOrder',
   async (number: string, { rejectWithValue }) => {
@@ -188,9 +196,11 @@ export const cancelOrder = createAsyncThunk(
   }
 );
 
-// Assigns only the buckets whose content actually changed, so unrelated
-// consumers (e.g. Grid's pagination, which resets when its `rows` prop
-// reference changes) don't treat an identical 15s poll as new data.
+/**
+ * Updates each order bucket in state only if its normalized contents
+ * actually differ from what's already there, avoiding needless re-renders
+ * from the 15s polling refresh.
+ */
 function applyIfChanged(state: OrdersState, next: OrdersResponseData) {
   (Object.keys(next) as (keyof OrdersResponseData)[]).forEach((key) => {
     const nextItems = next[key].map(toOrderItem);
@@ -206,25 +216,31 @@ const ordersSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      /** Marks the orders fetch as in progress. */
       .addCase(fetchOrders.pending, (state) => {
         state.status = 'loading';
       })
+      /** Applies the fetched order groups to state, only replacing groups whose contents actually changed. */
       .addCase(fetchOrders.fulfilled, (state, action: PayloadAction<OrdersResponseData>) => {
         state.status = 'succeeded';
         state.error = null;
         applyIfChanged(state, action.payload);
       })
+      /** Records the error message when the orders fetch fails. */
       .addCase(fetchOrders.rejected, (state, action) => {
         state.status = 'failed';
         state.error = (action.payload as string) || 'Failed to load orders.';
       })
+      /** Marks the order stats fetch as in progress. */
       .addCase(fetchOrderStats.pending, (state) => {
         state.statsStatus = 'loading';
       })
+      /** Stores the fetched order stats on success. */
       .addCase(fetchOrderStats.fulfilled, (state, action: PayloadAction<OrderStats>) => {
         state.statsStatus = 'succeeded';
         state.stats = action.payload;
       })
+      /** Marks the order stats fetch as failed. */
       .addCase(fetchOrderStats.rejected, (state) => {
         state.statsStatus = 'failed';
       });

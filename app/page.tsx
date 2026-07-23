@@ -1,8 +1,8 @@
 import { redirect } from 'next/navigation';
 
-// Auth now lives client-side (Redux + localStorage/sessionStorage), so this
-// server component can't tell who's logged in — it always points at
-// /dashboard, and the (dashboard) layout bounces unauthenticated visitors to /login.
+/**
+ * Root route entry — immediately redirects visitors to /dashboard.
+ */
 export default function RootPage() {
   redirect('/dashboard');
 }

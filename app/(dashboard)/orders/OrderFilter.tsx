@@ -17,6 +17,10 @@ const RANGES: { value: 'today' | 'all'; label: string }[] = [
   { value: 'all', label: 'All Time' },
 ];
 
+/**
+ * Renders the orders search box plus the status and date-range filter
+ * button groups, showing count badges where provided, above the orders grid.
+ */
 export function OrderFilter({
   query,
   onQueryChange,
@@ -32,9 +36,6 @@ export function OrderFilter({
   onStatusFilterChange: (value: FilterValue) => void;
   rangeFilter: 'today' | 'all';
   onRangeFilterChange: (value: 'today' | 'all') => void;
-  /** New/not-yet-reviewed count shown as a pill next to a filter's label —
-   *  e.g. how many stock-confirmation orders or payment proofs are still
-   *  awaiting a decision. Omitted or 0 renders no pill. */
   badgeCounts?: Partial<Record<FilterValue, number>>;
 }) {
   return (

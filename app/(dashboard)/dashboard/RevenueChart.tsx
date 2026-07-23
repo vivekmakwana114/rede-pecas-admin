@@ -11,6 +11,9 @@ const SUBTITLE: Record<AnalyticsPeriod, string> = {
   yearly: 'Approved orders, last 12 months by month',
 };
 
+/**
+ * Area chart of approved-order revenue over the selected analytics period.
+ */
 export function RevenueChart({
   data,
   period,

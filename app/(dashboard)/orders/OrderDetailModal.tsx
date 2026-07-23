@@ -7,9 +7,6 @@ import { getOrderDetail } from '@/store/orders/ordersService';
 import { Section, InfoRow } from '@/components/DetailPanel';
 import { RAW_STATUS_LABELS } from './orderStatusLabels';
 
-// Full order row as returned by GET /admin/orders/:number (order.model.ts's
-// getOrderByNumber: `SELECT o.*, p.name AS product_name, p.reference,
-// s.name AS supplier_name`) — a superset of the trimmed list-row shape.
 interface OrderDetail {
   number: string;
   customer_phone: string;
@@ -29,17 +26,19 @@ interface OrderDetail {
   updated_at: string;
 }
 
+/**
+ * Converts a snake_case status/method value into a human-readable, title-cased
+ * label, or an em dash when the value is null.
+ */
 function formatLabel(value: string | null): string {
   if (!value) return '—';
   return value.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
 }
 
 /**
- * Read-only side panel for a single order — slides in from the right
- * (matching the product detail drawer) with fields grouped into Order /
- * Part / Vehicle / Timeline sections instead of one flat list. Orders have
- * no edit form here (unlike products): approve/reject/stock-confirm are
- * separate actions elsewhere in the orders page, not a field-level edit.
+ * Slide-over panel showing the full detail of a single order (customer,
+ * part, service, vehicle, timeline), fetched on mount, with a shortcut to
+ * open the payment proof viewer when a proof exists.
  */
 export function OrderDetailModal({
   orderNumber,

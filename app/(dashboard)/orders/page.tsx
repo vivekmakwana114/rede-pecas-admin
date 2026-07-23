@@ -19,9 +19,6 @@ import { toOrderRow } from './adapters';
 import { STOCK_STATUS_STYLES } from './stockStatus';
 import type { FilterValue, OrderRow, OrderStatus } from './types';
 
-// Row tinting still keys off the underlying bucket (pending/approved/rejected/
-// stockConfirmation) — only the visible "Payment Status" column's label
-// changed to reflect the payment decision specifically (see paymentStatusOf below).
 const ROW_TINT: Record<OrderStatus, string> = {
   pending: 'bg-muted hover:bg-accent/80',
   approved: 'bg-success/10 hover:bg-success/15',
@@ -37,14 +34,22 @@ const PAYMENT_STATUS_STYLES: Record<PaymentStatus, { label: string; badge: strin
   rejected: { label: 'Rejected', badge: 'bg-destructive/10 text-destructive border-destructive/30' },
 };
 
-// Nothing's been decided yet for a still-pending order, whether it's waiting
-// on stock confirmation or already at proof review — both read as "Pending".
+/**
+ * Collapses the full set of order statuses down to the three-way payment
+ * status (pending/approved/rejected) used for the payment status badge.
+ */
 function paymentStatusOf(status: OrderStatus): PaymentStatus {
   if (status === 'approved') return 'approved';
   if (status === 'rejected') return 'rejected';
   return 'pending';
 }
 
+/**
+ * Top-level Orders page: renders the stats panel, filter bar, and the orders
+ * grid, wiring up stock confirmation, payment review, and cancellation
+ * actions plus their confirm dialogs and detail/proof modals. Polls for fresh
+ * order data every 5 seconds.
+ */
 export default function OrdersPage() {
   const dispatch = useAppDispatch();
   const { pending, approved, rejected, stockConfirmation } = useAppSelector((state) => state.orders);
@@ -54,8 +59,6 @@ export default function OrdersPage() {
   const { toast, showToast } = useToast();
 
   useEffect(() => {
-    // Auth is handled globally by the axios interceptor in lib/api.ts (attaches
-    // the token, redirects to /login on 401), so this just needs to poll.
     dispatch(fetchOrders(range));
     const interval = setInterval(() => dispatch(fetchOrders(range)), 5000);
     return () => clearInterval(interval);
@@ -71,6 +74,10 @@ export default function OrdersPage() {
     onConfirm: () => void;
   } | null>(null);
 
+  /**
+   * Dispatches `reviewOrder` with `approved: true`, showing progress and
+   * result toasts, and refreshes the orders list on success.
+   */
   const handleApprove = async (number: string) => {
     showToast('Issuing official invoice...', 'info');
     const result = await dispatch(reviewOrder({ number, approved: true }));
@@ -82,6 +89,10 @@ export default function OrdersPage() {
     }
   };
 
+  /**
+   * Opens a confirm dialog warning that the invoice will be issued
+   * immediately, calling `handleApprove` once the user confirms.
+   */
   const handleApproveClick = (number: string) => {
     setConfirmDialog({
       title: `Approve order #${number}?`,
@@ -95,6 +106,10 @@ export default function OrdersPage() {
     });
   };
 
+  /**
+   * Dispatches `reviewOrder` with `approved: false`, showing a result toast
+   * and refreshing the orders list on success.
+   */
   const rejectOrder = async (number: string) => {
     const result = await dispatch(reviewOrder({ number, approved: false }));
     if (reviewOrder.fulfilled.match(result)) {
@@ -105,6 +120,10 @@ export default function OrdersPage() {
     }
   };
 
+  /**
+   * Opens a confirm dialog warning that the customer will be notified
+   * immediately, calling `rejectOrder` once the user confirms.
+   */
   const handleReject = (number: string) => {
     setConfirmDialog({
       title: `Reject order #${number}?`,
@@ -118,6 +137,10 @@ export default function OrdersPage() {
     });
   };
 
+  /**
+   * Dispatches `confirmOrderStock` with the given availability, showing a
+   * result toast and refreshing the orders list on success.
+   */
   const confirmStock = async (number: string, available: boolean) => {
     const result = await dispatch(confirmOrderStock({ number, available }));
     if (confirmOrderStock.fulfilled.match(result)) {
@@ -131,6 +154,10 @@ export default function OrdersPage() {
     }
   };
 
+  /**
+   * Opens the appropriate confirm dialog for confirming stock or marking it
+   * unavailable, calling `confirmStock` once the user confirms.
+   */
   const handleConfirmStock = (number: string, available: boolean) => {
     if (available) {
       setConfirmDialog({
@@ -157,13 +184,10 @@ export default function OrdersPage() {
     });
   };
 
-  // Purely an admin-grid display action — hides the order from this list
-  // (backend sets admin_hidden, only ever on an already-approved order). It
-  // never touches the order's real status, never notifies the customer, and
-  // doesn't affect their order in any way — this is just decluttering the
-  // approved log, not a real cancellation. Only offered once an order is
-  // approved (see cancellable below) — the backend also enforces this
-  // server-side, rejecting with a 409 otherwise.
+  /**
+   * Dispatches `cancelOrder` to hide the order from the admin grid, showing a
+   * result toast and refreshing the orders list on success.
+   */
   const cancelOrderAction = async (number: string) => {
     const result = await dispatch(cancelOrder(number));
     if (cancelOrder.fulfilled.match(result)) {
@@ -174,6 +198,10 @@ export default function OrdersPage() {
     }
   };
 
+  /**
+   * Opens a confirm dialog warning this only hides the order from the admin
+   * view, calling `cancelOrderAction` once the user confirms.
+   */
   const handleCancel = (number: string) => {
     setConfirmDialog({
       title: `Remove order #${number} from the grid?`,
@@ -187,11 +215,6 @@ export default function OrdersPage() {
     });
   };
 
-  // Combined across all 4 buckets and sorted by most-recently-changed first —
-  // otherwise an order that just moved into e.g. the stockConfirmation or
-  // payment-proof-received bucket would land wherever that bucket's array
-  // happens to be concatenated, potentially pushed onto page 2 despite being
-  // the freshest thing that needs attention.
   const allRows = useMemo<OrderRow[]>(
     () =>
       [
@@ -216,11 +239,6 @@ export default function OrdersPage() {
     });
   }, [allRows, query, statusFilter]);
 
-  // Badges on the filter bar flag what's new/not-yet-reviewed — every
-  // stockConfirmation-bucket order is by definition still awaiting a
-  // confirm/unavailable decision, and a proof only needs attention while
-  // its order is still pending (an approved/rejected order's proof is just
-  // there for audit, viewable via the Payment Proof column either way).
   const badgeCounts: Partial<Record<FilterValue, number>> = {
     stockConfirmation: stockConfirmation.length,
     paymentProof: pending.filter((o) => o.has_proof).length,
@@ -397,8 +415,6 @@ export default function OrdersPage() {
       header: 'Actions',
       align: 'right',
       cell: (row) => {
-        // Only offered on approved orders — see cancelOrderAction/handleCancel
-        // above for why (admin-grid-only, backend also enforces this).
         const removableFromGrid = row.status === 'approved';
         return (
           <div className="flex justify-end">

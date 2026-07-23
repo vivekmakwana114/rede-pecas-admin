@@ -21,19 +21,12 @@ import { parseWorkbookRows, type ParseResult } from './adapters';
 import * as inventoryService from '@/store/inventory/inventoryService';
 import type { UploadItemPayload } from '@/store/inventory/inventoryService';
 
-// Client-side parsing (adapters.ts) only drives the preview grid below —
-// the file itself is what actually gets uploaded and validated server-side
-// (see handleImport), so this preview can be a little looser than the
-// server's rules without risk of a bad file slipping through.
 
 type ParseError = { type: 'missing-columns'; missingColumns: string[] } | { type: 'empty' } | { type: 'unreadable' };
 type Stage = 'idle' | 'invalid' | 'ready';
 
 const STEPS = ['Select file', 'Review', 'Import'] as const;
 
-// One column per column in produtos_rede_pecas_via_pecas_v3_EN.csv, in file
-// order — no combining fields into a single cell, so the review step shows
-// exactly what's in the source file, matching ProductsGrid's columns.
 const ITEM_COLUMNS: GridColumn<UploadItemPayload>[] = [
   { key: 'name', header: 'Product', cell: (row) => <span className="font-medium text-foreground">{row.name}</span> },
   {
@@ -148,6 +141,11 @@ const ITEM_COLUMNS: GridColumn<UploadItemPayload>[] = [
   },
 ];
 
+/**
+ * Slide-over panel that walks the user through importing a product inventory
+ * spreadsheet: pick/drop a file, review the parsed rows, then submit the import
+ * and show the resulting added/updated/skipped counts.
+ */
 export function ImportPanel({ onClose }: { onClose: () => void }) {
   const dispatch = useAppDispatch();
   const { upload } = useAppSelector((state) => state.inventory);
@@ -161,16 +159,16 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
   const [templateDownloading, setTemplateDownloading] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // The panel is only ever mounted while open (page.tsx conditionally renders
-  // it), so unmount is the one reliable "closed" signal — clear the shared
-  // upload status here rather than on every close path, so reopening always
-  // starts from a clean 'ready' stage instead of showing a stale success/error.
   useEffect(() => {
     return () => {
       dispatch(resetUpload());
     };
   }, [dispatch]);
 
+  /**
+   * Reads the selected file as a workbook, parses it via `parseWorkbookRows`,
+   * and moves the panel into the invalid or ready stage depending on the result.
+   */
   const processFile = (file: File) => {
     setFileName(file.name);
     setSelectedFile(file);
@@ -206,12 +204,20 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     reader.readAsBinaryString(file);
   };
 
+  /**
+   * Grabs the file chosen via the hidden file input, resets the input value so
+   * the same file can be re-selected later, and hands it off to `processFile`.
+   */
   const handleFileInput = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (file) processFile(file);
   };
 
+  /**
+   * Fetches the inventory import template file from the API and triggers a
+   * browser download of it as `inventory-template.xlsx`.
+   */
   const handleDownloadTemplate = async () => {
     setTemplateDownloading(true);
     try {
@@ -227,6 +233,10 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     }
   };
 
+  /**
+   * Handles a file dropped onto the drop zone, clearing the drag-active state
+   * and forwarding the dropped file to `processFile`.
+   */
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setDragActive(false);
@@ -234,6 +244,10 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     if (file) processFile(file);
   };
 
+  /**
+   * Clears all local selection/parse state and dispatches `resetUpload` so the
+   * panel returns to its initial "select file" stage.
+   */
   const reset = () => {
     setStage('idle');
     setParseError(null);
@@ -243,11 +257,11 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
     dispatch(resetUpload());
   };
 
+  /**
+   * Dispatches `importInventory` with the selected file and, on success,
+   * refreshes the products list so the grid reflects the newly imported data.
+   */
   const handleImport = async () => {
-    // The uploaded file itself is what's sent — the server parses and
-    // validates it (parseResult only drives the preview grid above). Result
-    // is shown inline in the stage === 'ready' / upload.status === 'succeeded'
-    // block below — no separate toast, so there's only one place to look.
     if (!selectedFile) return;
     const result = await dispatch(importInventory(selectedFile));
     if (importInventory.fulfilled.match(result)) {

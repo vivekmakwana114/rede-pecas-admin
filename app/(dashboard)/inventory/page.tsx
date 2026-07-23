@@ -15,6 +15,10 @@ const TABS: { id: Tab; label: string }[] = [
   { id: 'services', label: 'Services' },
 ];
 
+/**
+ * Top-level Inventory page: tabs between the Products and Services grids and
+ * toggles the matching import panel, sharing one toast for feedback across both tabs.
+ */
 export default function InventoryPage() {
   const { toast, showToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('products');

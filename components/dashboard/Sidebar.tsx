@@ -15,21 +15,20 @@ const NAV_ITEMS: { href: string; label: string; icon: LucideIcon }[] = [
   { href: '/customers', label: 'Customers', icon: Users },
 ];
 
+/**
+ * Left navigation rail listing the main app sections, highlighting the
+ * active route and showing a badge count on Orders for items needing
+ * stock confirmation or with a pending payment proof.
+ */
 export function Sidebar() {
   const pathname = usePathname();
   const dispatch = useAppDispatch();
   const { pending, stockConfirmation } = useAppSelector((state) => state.orders);
 
   useEffect(() => {
-    // OrdersPage owns the poll while it's mounted; this is just a one-off
-    // fetch so the badge below has data on other dashboard pages. 'all' since
-    // the badge counts every outstanding order, not just today's.
     dispatch(fetchOrders('all'));
   }, [dispatch]);
 
-  // Same "still awaiting a decision" definition OrdersPage uses for its
-  // filter-bar badges: every stockConfirmation-bucket order plus every
-  // still-pending order that has a proof to review.
   const ordersBadgeCount = stockConfirmation.length + pending.filter((o) => o.has_proof).length;
 
   return (

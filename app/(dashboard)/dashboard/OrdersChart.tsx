@@ -17,6 +17,10 @@ const STATUS_BARS: { key: 'approved' | 'pending' | 'stockConfirmation' | 'reject
   { key: 'rejected', label: 'Rejected', color: 'var(--destructive)' },
 ];
 
+/**
+ * Stacked bar chart of order counts by status (approved/pending/stock
+ * confirmation/rejected) over the selected analytics period.
+ */
 export function OrdersChart({
   data,
   period,

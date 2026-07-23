@@ -1,6 +1,10 @@
 import { BrandMark } from '@/components/BrandMark';
 import { UserMenu } from './UserMenu';
 
+/**
+ * Top app bar showing the Rede Peças brand mark and name on the left
+ * and the current admin's user menu on the right.
+ */
 export function Header() {
   return (
     <header className="flex items-center justify-between border-b border-border bg-background px-6 py-3.5">

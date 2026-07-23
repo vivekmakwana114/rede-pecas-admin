@@ -2,9 +2,10 @@
 
 import { TriangleAlert } from 'lucide-react';
 
-/** Generic yes/no confirmation modal — swap-in replacement for
- *  `window.confirm` so destructive actions get a styled dialog instead of
- *  the browser's native alert. */
+/**
+ * Modal confirmation prompt with a title, message, and confirm/cancel buttons.
+ * Styles the confirm button as destructive when the action is irreversible.
+ */
 export function ConfirmDialog({
   title,
   message,

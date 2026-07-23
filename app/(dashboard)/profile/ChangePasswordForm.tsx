@@ -10,6 +10,10 @@ import { useToast } from '@/components/dashboard/useToast';
 
 const HAS_SPECIAL_CHAR = /[^A-Za-z0-9]/;
 
+/**
+ * Form for changing the logged-in admin's password, with live checklist
+ * validation of the new password's requirements before submission.
+ */
 export function ChangePasswordForm() {
   const { toast, showToast } = useToast();
   const [currentPassword, setCurrentPassword] = useState('');
@@ -21,15 +25,14 @@ export function ChangePasswordForm() {
   const hasMinLength = newPassword.length >= 8;
   const hasSpecialChar = HAS_SPECIAL_CHAR.test(newPassword);
 
+  /**
+   * Validates the new password against the requirements and confirmation
+   * match, then submits the password change request to the API.
+   */
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
-    // Read the form's actual DOM values rather than trusting the controlled
-    // state alone — browser password-manager autofill can set an input's
-    // value without firing React's onChange, leaving `currentPassword`/
-    // `newPassword`/`confirmPassword` stale even though the field visibly
-    // shows the right value. FormData always reflects what's really there.
     const data = new FormData(e.currentTarget);
     const current = String(data.get('current-password') ?? '');
     const next = String(data.get('new-password') ?? '');
@@ -137,6 +140,10 @@ export function ChangePasswordForm() {
   );
 }
 
+/**
+ * Renders a single password-requirement row, showing a check mark and
+ * highlighted text once the requirement is met.
+ */
 function ChecklistItem({ met, label }: { met: boolean; label: string }) {
   return (
     <li className="flex items-center gap-2 text-xs">

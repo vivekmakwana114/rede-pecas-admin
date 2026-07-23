@@ -12,6 +12,10 @@ import { RevenueChart } from './RevenueChart';
 import { OrdersChart } from './OrdersChart';
 import { PeriodFilter } from './PeriodFilter';
 
+/**
+ * Dashboard home page: loads orders, products, customers and analytics on
+ * mount, polls order data every 15s, and renders the stats grid and charts.
+ */
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
   const { stats } = useAppSelector((state) => state.orders);
@@ -30,11 +34,13 @@ export default function DashboardPage() {
       dispatch(fetchOrderStats());
     }, 15000);
     return () => clearInterval(interval);
-    // Only ever fires the initial analytics fetch with whatever `period` was
-    // on mount — subsequent period changes go through handlePeriodChange.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
+  /**
+   * Updates the selected analytics period and re-fetches order analytics
+   * for that period.
+   */
   const handlePeriodChange = (next: AnalyticsPeriod) => {
     dispatch(setPeriod(next));
     dispatch(fetchOrderAnalytics(next));

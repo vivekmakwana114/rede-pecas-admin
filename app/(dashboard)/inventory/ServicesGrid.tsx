@@ -12,6 +12,10 @@ import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ServiceDetailModal } from './ServiceDetailModal';
 import type { Service } from './types';
 
+/**
+ * Renders the searchable services grid with row-level actions (view, edit,
+ * activate/deactivate, delete) and the modals/confirm dialogs those actions open.
+ */
 export function ServicesGrid({
   showToast,
   onImportClick,
@@ -34,10 +38,10 @@ export function ServicesGrid({
     dispatch(fetchServices());
   }, [dispatch]);
 
-  // Reversible — flips active to false via PATCH (updateService). The
-  // service stays out of the customer-facing match-up but stays listed here
-  // (see getServicesHandler on the backend), and is only reachable to
-  // permanently delete once it's in this state — see handleDelete below.
+  /**
+   * Opens a confirm dialog that, when accepted, dispatches `updateService`
+   * to mark the service inactive and refreshes the service list.
+   */
   const handleDeactivate = (service: Service) => {
     setConfirmDialog({
       title: `Deactivate service ${service.service_name}?`,
@@ -56,8 +60,10 @@ export function ServicesGrid({
     });
   };
 
-  // Reverse of deactivate — only reachable once a service is already
-  // inactive. No confirmation needed: re-activating isn't destructive.
+  /**
+   * Dispatches `updateService` to mark the service active again and refreshes
+   * the service list, showing a toast on success or failure.
+   */
   const handleActivate = async (service: Service) => {
     const result = await dispatch(updateService({ id: service.id, fields: { active: true } }));
     if (updateService.fulfilled.match(result)) {
@@ -68,9 +74,10 @@ export function ServicesGrid({
     }
   };
 
-  // Permanent — only enabled once a service is already inactive (the
-  // backend rejects DELETE /admin/services/:id with a 409 otherwise, see
-  // hardDeleteService), so this action only ever shows up on inactive rows.
+  /**
+   * Opens a confirm dialog that, when accepted, dispatches `deleteService`
+   * to permanently remove the service and refreshes the service list.
+   */
   const handleDelete = (service: Service) => {
     setConfirmDialog({
       title: `Permanently delete service ${service.service_name}?`,
@@ -99,16 +106,6 @@ export function ServicesGrid({
     );
   }, [services, query]);
 
-  // One column per column in servicos_rede_pecas_v3_EN.csv, in file order
-  // (provider_name;address;province;phone;specialties;rating;response_time;
-  // service_name;service_category;service_base_price;service_duration_h;
-  // available_at_home;base_travel_fee;logistics_fee_notes) — no combining
-  // fields into a single cell, so what's in the grid matches what's in the
-  // file 1:1. `active` gets its own Status column at the end instead of
-  // following the file's column position, since it's shown as a badge tied
-  // to the row actions rather than plain imported data — the list now
-  // includes inactive services too (see getServicesHandler) so a
-  // deactivated one stays reachable to reactivate.
   const columns: GridColumn<Service>[] = [
     {
       key: 'provider_name',

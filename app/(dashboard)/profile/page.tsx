@@ -6,6 +6,10 @@ import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchAdminProfile } from '@/store/auth/authSlice';
 import { ChangePasswordForm } from './ChangePasswordForm';
 
+/**
+ * Profile page: loads and displays the logged-in admin's account info
+ * alongside the change-password form.
+ */
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
   const admin = useAppSelector((state) => state.auth.admin);

@@ -32,6 +32,10 @@ interface ProfileResponsePayload {
   data: { admin: AdminProfile };
 }
 
+/**
+ * Pulls a human-readable message out of an Axios error's response body,
+ * falling back to the error's own message or a given default.
+ */
 function extractErrorMessage(err: unknown, fallback: string): string {
   if (axios.isAxiosError<{ message?: string }>(err)) {
     return err.response?.data?.message || err.message || fallback;
@@ -39,6 +43,10 @@ function extractErrorMessage(err: unknown, fallback: string): string {
   return fallback;
 }
 
+/**
+ * Logs an admin in via the auth API and returns the profile plus access/refresh
+ * tokens (and the rememberMe flag) for the reducer to persist.
+ */
 export const loginUser = createAsyncThunk(
   'auth/loginUser',
   async (
@@ -54,6 +62,9 @@ export const loginUser = createAsyncThunk(
   },
 );
 
+/**
+ * Fetches the current admin's profile from the API to refresh the stored admin data.
+ */
 export const fetchAdminProfile = createAsyncThunk('auth/fetchAdminProfile', async (_: void, { rejectWithValue }) => {
   try {
     const res = await getProfile();
@@ -63,21 +74,23 @@ export const fetchAdminProfile = createAsyncThunk('auth/fetchAdminProfile', asyn
   }
 });
 
-// The only place that calls the backend logout endpoint — components dispatch
-// this one thunk instead of importing authService directly, same as loginUser
-// above. Always resolves (never rejects): the admin is logging out locally
-// regardless of whether the backend could reach Redis/revoke the token (e.g.
-// it was already expired, or the network dropped), so a failed revoke call
-// must not block the local logout below.
+/**
+ * Logs the admin out by revoking the stored refresh token on the server,
+ * ignoring any errors from the request itself.
+ */
 export const logout = createAsyncThunk('auth/logout', async (_: void, { getState }) => {
   const { tokens } = (getState() as { auth: AuthState }).auth;
   try {
     await logoutRequest(tokens?.refresh.token);
   } catch {
-    // Best-effort — see doc comment above.
   }
 });
 
+/**
+ * Reads a previously-persisted admin/tokens pair from local or session
+ * storage (for hydrating initial Redux state), returning nulls on the
+ * server, when nothing's stored, or if the stored value is malformed.
+ */
 function readStoredAuth(): { admin: AdminProfile | null; tokens: AuthTokens | null } {
   if (typeof window === 'undefined') {
     return { admin: null, tokens: null };
@@ -102,6 +115,7 @@ const authSlice = createSlice({
   reducers: {},
   extraReducers: (builder) => {
     builder
+      /** Clears the admin and tokens from state and storage after logout completes. */
       .addCase(logout.fulfilled, (state) => {
         state.admin = null;
         state.tokens = null;
@@ -112,10 +126,12 @@ const authSlice = createSlice({
           sessionStorage.removeItem('auth');
         }
       })
+      /** Marks the login request as in progress and clears any previous error. */
       .addCase(loginUser.pending, (state) => {
         state.status = 'loading';
         state.error = null;
       })
+      /** Stores the logged-in admin and tokens, persisting them to local or session storage based on rememberMe. */
       .addCase(loginUser.fulfilled, (state, action: PayloadAction<LoginResponsePayload>) => {
         const { rememberMe, data, accessToken, refreshToken } = action.payload;
 
@@ -134,10 +150,12 @@ const authSlice = createSlice({
           }
         }
       })
+      /** Records the error message when login fails. */
       .addCase(loginUser.rejected, (state, action) => {
         state.status = 'failed';
         state.error = (action.payload as string) || 'Incorrect email or password.';
       })
+      /** Updates the stored admin profile once it's freshly fetched. */
       .addCase(fetchAdminProfile.fulfilled, (state, action: PayloadAction<ProfileResponsePayload>) => {
         state.admin = action.payload.data.admin;
       });

@@ -7,9 +7,9 @@ import type { GridColumn, SortDirection } from './types';
 const DEFAULT_PAGE_SIZE = 10;
 
 /**
- * Presentational, domain-agnostic table: sortable columns, client-side
- * pagination, empty state. Callers own filtering/search and pass in the
- * already-narrowed `rows` — this component only sorts and paginates.
+ * Generic paginated, sortable data table. Renders the given columns/rows,
+ * handles client-side sorting and page navigation, and shows an empty-state
+ * message when there are no rows.
  */
 export function Grid<T>({
   columns,
@@ -23,7 +23,6 @@ export function Grid<T>({
   rows: T[];
   getRowId: (row: T) => string;
   emptyMessage?: ReactNode;
-  /** Extra classes for a row's <tr> — e.g. a status-based background tint. */
   rowClassName?: (row: T) => string | undefined;
   pageSize?: number;
 }) {
@@ -32,12 +31,6 @@ export function Grid<T>({
   const [page, setPage] = useState(1);
   const [prevRows, setPrevRows] = useState(rows);
 
-  // Reset to page 1 whenever the underlying set narrows (search/filter), so a
-  // stricter query never leaves the user stranded on a now-empty page. Adjusted
-  // during render (React's recommended pattern for this) rather than an effect,
-  // so it doesn't cost an extra render pass. Callers are responsible for keeping
-  // `rows` referentially stable across renders that don't actually change data
-  // (e.g. polling) — otherwise this fires on every tick.
   if (rows !== prevRows) {
     setPrevRows(rows);
     setPage(1);
@@ -61,6 +54,10 @@ export function Grid<T>({
 
   const pageRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  /**
+   * Updates sort state when a sortable column header is clicked — switches
+   * to the clicked column ascending, or flips direction if already sorted by it.
+   */
   const toggleSort = (column: GridColumn<T>) => {
     if (!column.sortable) return;
     if (sortKey !== column.key) {

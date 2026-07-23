@@ -2,6 +2,10 @@ import type { ReactNode } from 'react';
 import { Header } from './Header';
 import { Sidebar } from './Sidebar';
 
+/**
+ * Top-level layout for authenticated pages — renders the header and sidebar
+ * around a scrollable main content area that wraps the given children.
+ */
 export function DashboardShell({ children }: { children: ReactNode }) {
   return (
     <div className="flex h-screen flex-col overflow-hidden">

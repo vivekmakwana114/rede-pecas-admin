@@ -23,6 +23,10 @@ export const metadata: Metadata = {
   },
 };
 
+/**
+ * Root HTML layout for the whole app — sets up the fonts and wraps every
+ * page in the Redux StoreProvider.
+ */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" className={`${poppins.variable} ${jetbrainsMono.variable}`}>

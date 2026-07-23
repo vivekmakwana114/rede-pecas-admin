@@ -3,6 +3,10 @@
 import { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
 
+/**
+ * Password text input with a show/hide toggle button that switches the
+ * field between masked and plain-text display.
+ */
 export function PasswordInput({
   id,
   name,
@@ -12,10 +16,6 @@ export function PasswordInput({
   autoComplete,
 }: {
   id: string;
-  /** Defaults to `id` — set when a submit handler needs to read the field's
-   *  live DOM value via FormData (browser autofill can silently set an
-   *  input's value without firing React's onChange, leaving controlled
-   *  state stale; reading FormData at submit time sidesteps that). */
   name?: string;
   value: string;
   onChange: (value: string) => void;

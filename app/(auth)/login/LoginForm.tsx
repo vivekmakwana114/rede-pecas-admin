@@ -9,6 +9,11 @@ import { loginUser } from '@/store/auth/authSlice';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { BrandMark } from '@/components/BrandMark';
 
+/**
+ * Renders the login screen: email/password fields, remember-me toggle, and
+ * a forgot-password link; on submit, dispatches the login action and redirects
+ * to the dashboard once authenticated.
+ */
 export function LoginForm() {
   const router = useRouter();
   const dispatch = useAppDispatch();
@@ -26,6 +31,10 @@ export function LoginForm() {
     }
   }, [tokens, router]);
 
+  /**
+   * Submits the login form: dispatches the loginUser thunk and, on success,
+   * navigates to the dashboard; on failure, surfaces an error message.
+   */
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoginError('');
