@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreVertical, type LucideIcon } from 'lucide-react';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 export interface RowAction {
   label: string;
@@ -19,6 +20,7 @@ const MENU_WIDTH = 176;
  * escape, or scroll.
  */
 export function RowActionsMenu({ actions }: { actions: RowAction[] }) {
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState({ top: 0, left: 0 });
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -64,7 +66,7 @@ export function RowActionsMenu({ actions }: { actions: RowAction[] }) {
         ref={buttonRef}
         type="button"
         onClick={toggle}
-        aria-label="Open actions menu"
+        aria-label={t('grid.openActionsMenu')}
         aria-haspopup="menu"
         aria-expanded={open}
         className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"

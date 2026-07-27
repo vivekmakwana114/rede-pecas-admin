@@ -13,6 +13,7 @@ import { Toast } from '@/components/dashboard/Toast';
 import { useToast } from '@/components/dashboard/useToast';
 import { VehiclePlate } from './VehiclePlate';
 import { CustomerDetailModal } from './CustomerDetailModal';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import type { Customer } from './types';
 
 /**
@@ -21,6 +22,7 @@ import type { Customer } from './types';
  */
 export default function CustomersPage() {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const { customers, status } = useAppSelector((state) => state.customers);
   const [query, setQuery] = useState('');
   const { toast, showToast } = useToast();
@@ -42,17 +44,17 @@ export default function CustomersPage() {
    */
   const handleDelete = (customer: Customer) => {
     setConfirmDialog({
-      title: `Delete customer ${customer.name}?`,
-      message: 'This removes them from the customer list. This action cannot be undone.',
-      confirmLabel: 'Delete',
+      title: t('customers.deleteTitle', { name: customer.name }),
+      message: t('customers.deleteMessage'),
+      confirmLabel: t('customers.deleteConfirm'),
       onConfirm: async () => {
         setConfirmDialog(null);
         const result = await dispatch(deleteCustomer(customer.phone));
         if (deleteCustomer.fulfilled.match(result)) {
-          showToast(`Customer ${customer.name} deleted.`, 'success');
+          showToast(t('customers.deleteSuccess', { name: customer.name }), 'success');
           dispatch(fetchCustomers());
         } else {
-          showToast('Failed to delete the customer.', 'error');
+          showToast(t('customers.deleteFailure'), 'error');
         }
       },
     });
@@ -71,7 +73,7 @@ export default function CustomersPage() {
   const columns: GridColumn<Customer>[] = [
     {
       key: 'name',
-      header: 'Customer',
+      header: t('customers.columns.customer'),
       sortable: true,
       sortValue: (row) => row.name,
       cell: (row) => (
@@ -83,7 +85,7 @@ export default function CustomersPage() {
     },
     {
       key: 'vehicle',
-      header: 'Vehicles',
+      header: t('customers.columns.vehicles'),
       sortable: true,
       sortValue: (row) => row.vehicles[0]?.plate ?? '',
       cell: (row) => {
@@ -98,7 +100,7 @@ export default function CustomersPage() {
     },
     {
       key: 'ordersCount',
-      header: 'Orders',
+      header: t('customers.columns.orders'),
       sortable: true,
       align: 'center',
       sortValue: (row) => row.ordersCount,
@@ -106,7 +108,7 @@ export default function CustomersPage() {
     },
     {
       key: 'totalSpent',
-      header: 'Total Spent',
+      header: t('customers.columns.totalSpent'),
       sortable: true,
       align: 'center',
       sortValue: (row) => row.totalSpent,
@@ -114,22 +116,22 @@ export default function CustomersPage() {
     },
     {
       key: 'createdAt',
-      header: 'Joined',
+      header: t('customers.columns.joined'),
       sortable: true,
       sortValue: (row) => row.createdAt,
       cell: (row) => <span className="text-xs text-muted-foreground">{row.createdAt}</span>,
     },
     {
       key: 'actions',
-      header: 'Actions',
+      header: t('customers.columns.actions'),
       align: 'center',
       cell: (row) => (
         <div className="flex justify-end">
           <RowActionsMenu
             actions={[
-              { label: 'View customer', icon: Eye, onClick: () => setDetailCustomer({ customer: row, editing: false }) },
-              { label: 'Edit customer', icon: Pencil, onClick: () => setDetailCustomer({ customer: row, editing: true }) },
-              { label: 'Delete customer', icon: Trash2, onClick: () => handleDelete(row), destructive: true },
+              { label: t('customers.viewCustomer'), icon: Eye, onClick: () => setDetailCustomer({ customer: row, editing: false }) },
+              { label: t('customers.editCustomer'), icon: Pencil, onClick: () => setDetailCustomer({ customer: row, editing: true }) },
+              { label: t('customers.deleteCustomer'), icon: Trash2, onClick: () => handleDelete(row), destructive: true },
             ]}
           />
         </div>
@@ -142,14 +144,14 @@ export default function CustomersPage() {
       <Toast toast={toast} />
 
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-bold text-foreground">Customers</h2>
+        <h2 className="text-lg font-bold text-foreground">{t('customers.title')}</h2>
         <div className="relative w-full sm:max-w-xs">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search name, phone or plate…"
+            placeholder={t('customers.searchPlaceholder')}
             className="w-full rounded-lg border border-input py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
@@ -163,10 +165,10 @@ export default function CustomersPage() {
           status === 'loading' ? (
             <span className="inline-flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading customers…
+              {t('customers.loading')}
             </span>
           ) : (
-            'No customers yet — they show up here once they place an order.'
+            t('customers.empty')
           )
         }
       />

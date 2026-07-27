@@ -11,12 +11,13 @@ import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
 import { RowActionsMenu } from '@/components/RowActionsMenu';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import { StatsPanel } from './StatsPanel';
 import { OrderFilter } from './OrderFilter';
 import { PaymentProofModal } from './PaymentProofModal';
 import { OrderDetailModal } from './OrderDetailModal';
 import { toOrderRow } from './adapters';
-import { STOCK_STATUS_STYLES } from './stockStatus';
+import { STOCK_STATUS_BADGE, STOCK_STATUS_LABEL_KEY } from './stockStatus';
 import type { FilterValue, OrderRow, OrderStatus } from './types';
 
 const ROW_TINT: Record<OrderStatus, string> = {
@@ -28,10 +29,10 @@ const ROW_TINT: Record<OrderStatus, string> = {
 
 type PaymentStatus = 'pending' | 'approved' | 'rejected';
 
-const PAYMENT_STATUS_STYLES: Record<PaymentStatus, { label: string; badge: string }> = {
-  pending: { label: 'Pending', badge: 'bg-warning/10 text-warning border-warning/30' },
-  approved: { label: 'Approved', badge: 'bg-success/10 text-success border-success/30' },
-  rejected: { label: 'Rejected', badge: 'bg-destructive/10 text-destructive border-destructive/30' },
+const PAYMENT_STATUS_BADGE: Record<PaymentStatus, string> = {
+  pending: 'bg-warning/10 text-warning border-warning/30',
+  approved: 'bg-success/10 text-success border-success/30',
+  rejected: 'bg-destructive/10 text-destructive border-destructive/30',
 };
 
 /**
@@ -52,6 +53,7 @@ function paymentStatusOf(status: OrderStatus): PaymentStatus {
  */
 export default function OrdersPage() {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const { pending, approved, rejected, stockConfirmation } = useAppSelector((state) => state.orders);
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<FilterValue>('all');
@@ -79,13 +81,13 @@ export default function OrdersPage() {
    * result toasts, and refreshes the orders list on success.
    */
   const handleApprove = async (number: string) => {
-    showToast('Issuing official invoice...', 'info');
+    showToast(t('orders.toasts.issuingInvoice'), 'info');
     const result = await dispatch(reviewOrder({ number, approved: true }));
     if (reviewOrder.fulfilled.match(result)) {
-      showToast(`Order #${number} approved successfully!`, 'success');
+      showToast(t('orders.toasts.approveSuccess', { number }), 'success');
       dispatch(fetchOrders(range));
     } else {
-      showToast('Failed to approve the order.', 'error');
+      showToast(t('orders.toasts.approveFailure'), 'error');
     }
   };
 
@@ -95,9 +97,9 @@ export default function OrdersPage() {
    */
   const handleApproveClick = (number: string) => {
     setConfirmDialog({
-      title: `Approve order #${number}?`,
-      message: 'The official invoice will be issued and sent to the customer immediately.',
-      confirmLabel: 'Approve',
+      title: t('orders.confirmDialogs.approveTitle', { number }),
+      message: t('orders.confirmDialogs.approveMessage'),
+      confirmLabel: t('orders.confirmDialogs.approveConfirm'),
       destructive: false,
       onConfirm: () => {
         setConfirmDialog(null);
@@ -113,10 +115,10 @@ export default function OrdersPage() {
   const rejectOrder = async (number: string) => {
     const result = await dispatch(reviewOrder({ number, approved: false }));
     if (reviewOrder.fulfilled.match(result)) {
-      showToast(`Order #${number} rejected. Customer notified.`, 'success');
+      showToast(t('orders.toasts.rejectSuccess', { number }), 'success');
       dispatch(fetchOrders(range));
     } else {
-      showToast('Failed to reject the order.', 'error');
+      showToast(t('orders.toasts.rejectFailure'), 'error');
     }
   };
 
@@ -126,9 +128,9 @@ export default function OrdersPage() {
    */
   const handleReject = (number: string) => {
     setConfirmDialog({
-      title: `Reject order #${number}?`,
-      message: 'The customer will be notified immediately. This cannot be undone.',
-      confirmLabel: 'Reject',
+      title: t('orders.confirmDialogs.rejectTitle', { number }),
+      message: t('orders.confirmDialogs.rejectMessage'),
+      confirmLabel: t('orders.confirmDialogs.rejectConfirm'),
       destructive: true,
       onConfirm: () => {
         setConfirmDialog(null);
@@ -145,12 +147,17 @@ export default function OrdersPage() {
     const result = await dispatch(confirmOrderStock({ number, available }));
     if (confirmOrderStock.fulfilled.match(result)) {
       showToast(
-        available ? `Stock confirmed for order #${number}.` : `Order #${number} marked stock-unavailable.`,
+        available
+          ? t('orders.toasts.stockConfirmedSuccess', { number })
+          : t('orders.toasts.stockUnavailableSuccess', { number }),
         'success',
       );
       dispatch(fetchOrders(range));
     } else {
-      showToast(available ? 'Failed to confirm stock.' : 'Failed to mark stock unavailable.', 'error');
+      showToast(
+        available ? t('orders.toasts.stockConfirmFailure') : t('orders.toasts.stockUnavailableFailure'),
+        'error',
+      );
     }
   };
 
@@ -161,9 +168,9 @@ export default function OrdersPage() {
   const handleConfirmStock = (number: string, available: boolean) => {
     if (available) {
       setConfirmDialog({
-        title: `Confirm stock for order #${number}?`,
-        message: 'The proforma and payment-method options will be sent to the customer immediately.',
-        confirmLabel: 'Confirm Stock',
+        title: t('orders.confirmDialogs.confirmStockTitle', { number }),
+        message: t('orders.confirmDialogs.confirmStockMessage'),
+        confirmLabel: t('orders.confirmDialogs.confirmStockConfirm'),
         destructive: false,
         onConfirm: () => {
           setConfirmDialog(null);
@@ -173,9 +180,9 @@ export default function OrdersPage() {
       return;
     }
     setConfirmDialog({
-      title: `Mark order #${number} as stock-unavailable?`,
-      message: 'The customer will be notified immediately. This cannot be undone.',
-      confirmLabel: 'Mark Unavailable',
+      title: t('orders.confirmDialogs.markUnavailableTitle', { number }),
+      message: t('orders.confirmDialogs.markUnavailableMessage'),
+      confirmLabel: t('orders.confirmDialogs.markUnavailableConfirm'),
       destructive: true,
       onConfirm: () => {
         setConfirmDialog(null);
@@ -191,10 +198,10 @@ export default function OrdersPage() {
   const cancelOrderAction = async (number: string) => {
     const result = await dispatch(cancelOrder(number));
     if (cancelOrder.fulfilled.match(result)) {
-      showToast(`Order #${number} removed from the grid.`, 'success');
+      showToast(t('orders.toasts.removeSuccess', { number }), 'success');
       dispatch(fetchOrders(range));
     } else {
-      showToast('Failed to remove the order.', 'error');
+      showToast(t('orders.toasts.removeFailure'), 'error');
     }
   };
 
@@ -204,9 +211,9 @@ export default function OrdersPage() {
    */
   const handleCancel = (number: string) => {
     setConfirmDialog({
-      title: `Remove order #${number} from the grid?`,
-      message: "This only hides it from your admin view — it doesn't change the order itself or notify the customer, and can't be undone from here.",
-      confirmLabel: 'Remove',
+      title: t('orders.confirmDialogs.removeTitle', { number }),
+      message: t('orders.confirmDialogs.removeMessage'),
+      confirmLabel: t('orders.confirmDialogs.removeConfirm'),
       destructive: true,
       onConfirm: () => {
         setConfirmDialog(null);
@@ -247,21 +254,21 @@ export default function OrdersPage() {
   const columns: GridColumn<OrderRow>[] = [
     {
       key: 'number',
-      header: 'Order',
+      header: t('orders.columns.order'),
       sortable: true,
       sortValue: (row) => row.number,
       cell: (row) => <span className="font-mono text-xs font-semibold text-foreground">{row.number}</span>,
     },
     {
       key: 'customer',
-      header: 'Customer',
+      header: t('orders.columns.customer'),
       sortable: true,
       sortValue: (row) => row.customer,
       cell: (row) => <span className="font-mono text-xs text-foreground">{row.customer}</span>,
     },
     {
       key: 'part',
-      header: 'Part',
+      header: t('orders.columns.part'),
       sortable: true,
       sortValue: (row) => row.part,
       cell: (row) => (
@@ -278,7 +285,7 @@ export default function OrdersPage() {
     },
     {
       key: 'price',
-      header: 'Price',
+      header: t('orders.columns.price'),
       sortable: true,
       align: 'right',
       sortValue: (row) => row.price,
@@ -286,28 +293,28 @@ export default function OrdersPage() {
     },
     {
       key: 'stockConfirmation',
-      header: 'Stock',
+      header: t('orders.columns.stock'),
       align: 'center',
       cell: (row) => {
         if (row.status !== 'stockConfirmation') {
-          return <span className="text-xs text-muted-foreground">Qty: {row.quantity}</span>;
+          return <span className="text-xs text-muted-foreground">{t('orders.qty', { qty: row.quantity })}</span>;
         }
         return (
           <div className="flex flex-col items-center gap-1">
-            <span className="text-2xs text-muted-foreground">Qty: {row.quantity}</span>
+            <span className="text-2xs text-muted-foreground">{t('orders.qty', { qty: row.quantity })}</span>
             <div className="flex justify-center gap-2">
               <button
                 onClick={() => handleConfirmStock(row.number, false)}
-                aria-label={`Mark order ${row.number} stock-unavailable`}
-                title="Mark Unavailable"
+                aria-label={t('orders.markUnavailableAria', { number: row.number })}
+                title={t('orders.markUnavailable')}
                 className="rounded-lg border border-destructive/30 p-1.5 text-destructive transition-all hover:bg-destructive/10"
               >
                 <PackageX className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleConfirmStock(row.number, true)}
-                aria-label={`Confirm stock for order ${row.number}`}
-                title="Confirm Stock"
+                aria-label={t('orders.confirmStockAria', { number: row.number })}
+                title={t('orders.confirmStock')}
                 className="rounded-lg bg-success p-1.5 text-success-foreground shadow-sm transition-all hover:bg-success/90"
               >
                 <Check className="h-4 w-4" />
@@ -319,16 +326,16 @@ export default function OrdersPage() {
     },
     {
       key: 'stockStatus',
-      header: 'Stock Status',
+      header: t('orders.columns.stockStatus'),
       sortable: true,
       align: 'center',
       sortValue: (row) => row.stockStatus ?? '',
       cell: (row) =>
         row.stockStatus ? (
           <span
-            className={`inline-flex rounded-full border px-2.5 py-1 text-2xs font-bold ${STOCK_STATUS_STYLES[row.stockStatus].badge}`}
+            className={`inline-flex rounded-full border px-2.5 py-1 text-2xs font-bold ${STOCK_STATUS_BADGE[row.stockStatus]}`}
           >
-            {STOCK_STATUS_STYLES[row.stockStatus].label}
+            {t(STOCK_STATUS_LABEL_KEY[row.stockStatus])}
           </span>
         ) : (
           <span className="text-2xs text-muted-foreground">—</span>
@@ -336,7 +343,7 @@ export default function OrdersPage() {
     },
     {
       key: 'paymentProof',
-      header: 'Payment Proof',
+      header: t('orders.columns.paymentProof'),
       align: 'center',
       cell: (row) => {
         if (!row.hasProof && !row.actionable && !row.verifying) {
@@ -346,7 +353,7 @@ export default function OrdersPage() {
           return (
             <span className="inline-flex items-center gap-1 rounded-full border border-info/30 bg-info/10 px-2 py-1 text-2xs font-bold text-info">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-info" />
-              Verifying…
+              {t('orders.verifying')}
             </span>
           );
         }
@@ -355,8 +362,8 @@ export default function OrdersPage() {
             {row.hasProof && (
               <button
                 onClick={() => setProofOrder(row)}
-                aria-label={`View payment proof for order ${row.number}`}
-                title="View Proof"
+                aria-label={t('orders.viewProofAria', { number: row.number })}
+                title={t('orders.viewProof')}
                 className="rounded-lg border border-border p-1.5 text-muted-foreground transition-all hover:bg-accent"
               >
                 <Eye className="h-4 w-4" />
@@ -366,16 +373,16 @@ export default function OrdersPage() {
               <>
                 <button
                   onClick={() => handleReject(row.number)}
-                  aria-label={`Reject order ${row.number}`}
-                  title="Reject"
+                  aria-label={t('orders.rejectAria', { number: row.number })}
+                  title={t('orders.reject')}
                   className="rounded-lg border border-destructive/30 p-1 text-destructive transition-all hover:bg-destructive/10"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => handleApproveClick(row.number)}
-                  aria-label={`Approve order ${row.number}`}
-                  title="Approve"
+                  aria-label={t('orders.approveAria', { number: row.number })}
+                  title={t('orders.approve')}
                   className="rounded-lg bg-success p-1 text-success-foreground shadow-sm transition-all hover:bg-success/90"
                 >
                   <Check className="h-3.5 w-3.5" />
@@ -388,7 +395,7 @@ export default function OrdersPage() {
     },
     {
       key: 'paymentStatus',
-      header: 'Payment Status',
+      header: t('orders.columns.paymentStatus'),
       sortable: true,
       align: 'center',
       sortValue: (row) => paymentStatusOf(row.status),
@@ -396,23 +403,23 @@ export default function OrdersPage() {
         const paymentStatus = paymentStatusOf(row.status);
         return (
           <span
-            className={`inline-flex rounded-full border px-2.5 py-1 text-2xs font-bold ${PAYMENT_STATUS_STYLES[paymentStatus].badge}`}
+            className={`inline-flex rounded-full border px-2.5 py-1 text-2xs font-bold ${PAYMENT_STATUS_BADGE[paymentStatus]}`}
           >
-            {PAYMENT_STATUS_STYLES[paymentStatus].label}
+            {t(`orders.paymentStatus.${paymentStatus}`)}
           </span>
         );
       },
     },
     {
       key: 'time',
-      header: 'Date & Time',
+      header: t('orders.columns.dateTime'),
       sortable: true,
       sortValue: (row) => row.sortTime,
       cell: (row) => <span className="text-xs text-muted-foreground">{row.time}</span>,
     },
     {
       key: 'actions',
-      header: 'Actions',
+      header: t('orders.columns.actions'),
       align: 'right',
       cell: (row) => {
         const removableFromGrid = row.status === 'approved';
@@ -420,9 +427,9 @@ export default function OrdersPage() {
           <div className="flex justify-end">
             <RowActionsMenu
               actions={[
-                { label: 'View order', icon: Eye, onClick: () => setViewOrderNumber(row.number) },
+                { label: t('orders.viewOrder'), icon: Eye, onClick: () => setViewOrderNumber(row.number) },
                 ...(removableFromGrid
-                  ? [{ label: 'Remove from grid', icon: Trash2, onClick: () => handleCancel(row.number), destructive: true }]
+                  ? [{ label: t('orders.removeFromGrid'), icon: Trash2, onClick: () => handleCancel(row.number), destructive: true }]
                   : []),
               ]}
             />
@@ -452,7 +459,7 @@ export default function OrdersPage() {
         columns={columns}
         rows={filteredRows}
         getRowId={(row) => row.number}
-        emptyMessage="No orders match your search or filter."
+        emptyMessage={t('orders.emptyGrid')}
         rowClassName={(row) => ROW_TINT[row.status]}
       />
 

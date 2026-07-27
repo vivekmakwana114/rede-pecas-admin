@@ -1,6 +1,9 @@
+'use client';
+
 import type { LucideIcon } from 'lucide-react';
 import { Boxes, CheckCircle2, DollarSign, ShoppingCart, Users, XCircle } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface StatCard {
   label: string;
@@ -29,19 +32,36 @@ export function StatsGrid({
   rejectedOrders: number;
   approvedRevenue: number;
 }) {
+  const { t } = useLocale();
+
   const cards: StatCard[] = [
-    { label: 'Total Customers', value: String(totalCustomers), icon: Users, iconClassName: 'bg-info/10 text-info' },
-    { label: 'Total Products', value: String(totalProducts), icon: Boxes, iconClassName: 'bg-secondary/10 text-secondary' },
-    { label: 'Total Orders', value: String(totalOrders), icon: ShoppingCart, iconClassName: 'bg-primary/10 text-primary' },
+    { label: t('dashboard.stats.totalCustomers'), value: String(totalCustomers), icon: Users, iconClassName: 'bg-info/10 text-info' },
     {
-      label: 'Approved Orders',
+      label: t('dashboard.stats.totalProducts'),
+      value: String(totalProducts),
+      icon: Boxes,
+      iconClassName: 'bg-secondary/10 text-secondary',
+    },
+    {
+      label: t('dashboard.stats.totalOrders'),
+      value: String(totalOrders),
+      icon: ShoppingCart,
+      iconClassName: 'bg-primary/10 text-primary',
+    },
+    {
+      label: t('dashboard.stats.approvedOrders'),
       value: String(approvedOrders),
       icon: CheckCircle2,
       iconClassName: 'bg-success/10 text-success',
     },
-    { label: 'Rejected Orders', value: String(rejectedOrders), icon: XCircle, iconClassName: 'bg-destructive/10 text-destructive' },
     {
-      label: 'Revenue (Approved)',
+      label: t('dashboard.stats.rejectedOrders'),
+      value: String(rejectedOrders),
+      icon: XCircle,
+      iconClassName: 'bg-destructive/10 text-destructive',
+    },
+    {
+      label: t('dashboard.stats.revenueApproved'),
       value: formatKwanza(approvedRevenue),
       icon: DollarSign,
       iconClassName: 'bg-warning/10 text-warning',

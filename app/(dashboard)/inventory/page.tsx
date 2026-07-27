@@ -7,12 +7,13 @@ import { ImportPanel } from './ImportPanel';
 import { ProductsGrid } from './ProductsGrid';
 import { ServiceImportPanel } from './ServiceImportPanel';
 import { ServicesGrid } from './ServicesGrid';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 type Tab = 'products' | 'services';
 
-const TABS: { id: Tab; label: string }[] = [
-  { id: 'products', label: 'Products' },
-  { id: 'services', label: 'Services' },
+const TABS: { id: Tab; labelKey: string }[] = [
+  { id: 'products', labelKey: 'inventory.tabs.products' },
+  { id: 'services', labelKey: 'inventory.tabs.services' },
 ];
 
 /**
@@ -20,6 +21,7 @@ const TABS: { id: Tab; label: string }[] = [
  * toggles the matching import panel, sharing one toast for feedback across both tabs.
  */
 export default function InventoryPage() {
+  const { t } = useLocale();
   const { toast, showToast } = useToast();
   const [activeTab, setActiveTab] = useState<Tab>('products');
   const [isImportOpen, setIsImportOpen] = useState(false);
@@ -45,7 +47,7 @@ export default function InventoryPage() {
                 : 'border-transparent text-muted-foreground hover:text-foreground'
             }`}
           >
-            {tab.label}
+            {t(tab.labelKey)}
           </button>
         ))}
       </div>

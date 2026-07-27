@@ -2,19 +2,20 @@
 
 import { Search } from 'lucide-react';
 import type { FilterValue } from './types';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
-const FILTERS: { value: FilterValue; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'pending', label: 'Pending' },
-  { value: 'approved', label: 'Approved' },
-  { value: 'rejected', label: 'Rejected' },
-  { value: 'stockConfirmation', label: 'Stock Confirmation' },
-  { value: 'paymentProof', label: 'Payment Proof' },
+const FILTERS: { value: FilterValue; labelKey: string }[] = [
+  { value: 'all', labelKey: 'orders.filters.all' },
+  { value: 'pending', labelKey: 'orders.filters.pending' },
+  { value: 'approved', labelKey: 'orders.filters.approved' },
+  { value: 'rejected', labelKey: 'orders.filters.rejected' },
+  { value: 'stockConfirmation', labelKey: 'orders.filters.stockConfirmation' },
+  { value: 'paymentProof', labelKey: 'orders.filters.paymentProof' },
 ];
 
-const RANGES: { value: 'today' | 'all'; label: string }[] = [
-  { value: 'today', label: 'Today' },
-  { value: 'all', label: 'All Time' },
+const RANGES: { value: 'today' | 'all'; labelKey: string }[] = [
+  { value: 'today', labelKey: 'orders.ranges.today' },
+  { value: 'all', labelKey: 'orders.ranges.allTime' },
 ];
 
 /**
@@ -38,11 +39,13 @@ export function OrderFilter({
   onRangeFilterChange: (value: 'today' | 'all') => void;
   badgeCounts?: Partial<Record<FilterValue, number>>;
 }) {
+  const { t } = useLocale();
+
   return (
     <div className="flex flex-col gap-3">
       <div className="flex justify-end">
         <div className="flex items-center gap-1 rounded-lg border border-border bg-muted p-1">
-          {RANGES.map(({ value, label }) => (
+          {RANGES.map(({ value, labelKey }) => (
             <button
               key={value}
               type="button"
@@ -51,7 +54,7 @@ export function OrderFilter({
                 rangeFilter === value ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
               }`}
             >
-              {label}
+              {t(labelKey)}
             </button>
           ))}
         </div>
@@ -64,13 +67,13 @@ export function OrderFilter({
             type="text"
             value={query}
             onChange={(e) => onQueryChange(e.target.value)}
-            placeholder="Search order, customer, part…"
+            placeholder={t('orders.searchPlaceholder')}
             className="w-full rounded-lg border border-input py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
           />
         </div>
 
         <div className="flex flex-wrap items-center gap-1 rounded-lg border border-border bg-muted p-1">
-          {FILTERS.map(({ value, label }) => {
+          {FILTERS.map(({ value, labelKey }) => {
             const count = badgeCounts?.[value];
             return (
               <button
@@ -81,7 +84,7 @@ export function OrderFilter({
                   statusFilter === value ? 'bg-background text-primary shadow-sm' : 'text-muted-foreground hover:text-foreground'
                 }`}
               >
-                {label}
+                {t(labelKey)}
                 {Boolean(count) && (
                   <span className="rounded-full bg-secondary px-1.5 py-0.5 text-2xs font-bold text-secondary-foreground">{count}</span>
                 )}

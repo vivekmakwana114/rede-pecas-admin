@@ -5,6 +5,7 @@ import { Mail, Phone, UserRound } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { fetchAdminProfile } from '@/store/auth/authSlice';
 import { ChangePasswordForm } from './ChangePasswordForm';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 /**
  * Profile page: loads and displays the logged-in admin's account info
@@ -12,6 +13,7 @@ import { ChangePasswordForm } from './ChangePasswordForm';
  */
 export default function ProfilePage() {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const admin = useAppSelector((state) => state.auth.admin);
 
   useEffect(() => {
@@ -21,8 +23,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-bold text-foreground">Profile</h1>
-        <p className="mt-0.5 text-sm text-muted-foreground">Your account information and security settings.</p>
+        <h1 className="text-xl font-bold text-foreground">{t('profile.title')}</h1>
+        <p className="mt-0.5 text-sm text-muted-foreground">{t('profile.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -33,7 +35,7 @@ export default function ProfilePage() {
             </span>
             <div>
               <p className="text-base font-bold text-foreground">{admin?.name ?? '—'}</p>
-              <p className="text-xs text-muted-foreground">Administrator</p>
+              <p className="text-xs text-muted-foreground">{t('profile.administrator')}</p>
             </div>
           </div>
 
@@ -43,7 +45,7 @@ export default function ProfilePage() {
                 <Mail className="h-4 w-4" />
               </span>
               <div>
-                <dt className="text-2xs font-semibold text-muted-foreground">Email</dt>
+                <dt className="text-2xs font-semibold text-muted-foreground">{t('profile.email')}</dt>
                 <dd className="text-sm font-semibold text-foreground">{admin?.email ?? '—'}</dd>
               </div>
             </div>
@@ -52,7 +54,7 @@ export default function ProfilePage() {
                 <Phone className="h-4 w-4" />
               </span>
               <div>
-                <dt className="text-2xs font-semibold text-muted-foreground">Phone</dt>
+                <dt className="text-2xs font-semibold text-muted-foreground">{t('profile.phone')}</dt>
                 <dd className="text-sm font-semibold text-foreground">{admin?.phone ?? '—'}</dd>
               </div>
             </div>

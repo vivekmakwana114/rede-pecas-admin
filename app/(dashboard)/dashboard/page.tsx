@@ -7,6 +7,7 @@ import { fetchProducts } from '@/store/inventory/inventorySlice';
 import { fetchCustomers } from '@/store/customers/customersSlice';
 import { fetchOrderAnalytics, setPeriod } from '@/store/analytics/analyticsSlice';
 import type { AnalyticsPeriod } from '@/store/analytics/analyticsSlice';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import { StatsGrid } from './StatsGrid';
 import { RevenueChart } from './RevenueChart';
 import { OrdersChart } from './OrdersChart';
@@ -18,6 +19,7 @@ import { PeriodFilter } from './PeriodFilter';
  */
 export default function DashboardPage() {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const { stats } = useAppSelector((state) => state.orders);
   const { products } = useAppSelector((state) => state.inventory);
   const { customers } = useAppSelector((state) => state.customers);
@@ -50,15 +52,15 @@ export default function DashboardPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-          <p className="mt-0.5 text-sm text-muted-foreground">Platform totals across customers, inventory and orders.</p>
+          <h1 className="text-xl font-bold text-foreground">{t('dashboard.title')}</h1>
+          <p className="mt-0.5 text-sm text-muted-foreground">{t('dashboard.subtitle')}</p>
         </div>
         <div className="flex items-center gap-1.5 text-xs font-semibold text-success">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
           </span>
-          Live
+          {t('dashboard.live')}
         </div>
       </div>
 

@@ -6,6 +6,7 @@ import { formatKwanza } from '@/lib/format';
 import { useAppDispatch } from '@/store/hooks';
 import { updateProduct, type Product, type ProductUpdateFields } from '@/store/inventory/inventorySlice';
 import { Section, InfoRow } from '@/components/DetailPanel';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const baseInputClassName =
   'w-full rounded-lg border px-3 py-2 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
@@ -64,25 +65,26 @@ type FormState = {
  * Validates the product edit form, returning a map of field name to error
  * message for any required or malformed fields (name, reference, price, quantity, supplier).
  */
-function validate(form: FormState): Record<string, string> {
+function validate(form: FormState, t: (path: string) => string): Record<string, string> {
   const errors: Record<string, string> = {};
+  const required = t('inventory.common.requiredError');
 
-  if (!form.name.trim()) errors.name = 'Required.';
-  if (!form.reference.trim()) errors.reference = 'Required.';
+  if (!form.name.trim()) errors.name = required;
+  if (!form.reference.trim()) errors.reference = required;
 
   if (!form.price.trim()) {
-    errors.price = 'Required.';
+    errors.price = required;
   } else if (Number.isNaN(Number(form.price)) || Number(form.price) < 0) {
-    errors.price = 'Must be 0 or more.';
+    errors.price = t('inventory.common.nonNegativeError');
   }
 
   if (!form.quantity.trim()) {
-    errors.quantity = 'Required.';
+    errors.quantity = required;
   } else if (!Number.isInteger(Number(form.quantity)) || Number(form.quantity) < 0) {
-    errors.quantity = 'Must be a whole number, 0 or more.';
+    errors.quantity = t('inventory.common.wholeNumberError');
   }
 
-  if (!form.supplierName.trim()) errors.supplierName = 'Required.';
+  if (!form.supplierName.trim()) errors.supplierName = required;
 
   return errors;
 }
@@ -113,6 +115,7 @@ export function ProductDetailModal({
   onSaved: (message: string) => void;
 }) {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const editing = initialEditing;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -162,10 +165,10 @@ export function ProductDetailModal({
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
 
-    const errors = validate(form);
+    const errors = validate(form, t);
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setError('Fix the highlighted fields before saving.');
+      setError(t('inventory.common.fixFieldsError'));
       return;
     }
 
@@ -205,10 +208,10 @@ export function ProductDetailModal({
     setSaving(false);
 
     if (updateProduct.fulfilled.match(result)) {
-      onSaved(`Product ${form.name || product.reference} updated.`);
+      onSaved(t('inventory.productDetail.updateSuccess', { name: form.name || product.reference }));
       onClose();
     } else {
-      setError((result.payload as string) || 'Failed to update the product.');
+      setError((result.payload as string) || t('inventory.productDetail.updateFailure'));
     }
   };
 
@@ -225,14 +228,14 @@ export function ProductDetailModal({
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div className="min-w-0">
             <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
-              {editing ? 'Edit Product' : 'Product'}
+              {editing ? t('inventory.productDetail.editTitle') : t('inventory.productDetail.viewTitle')}
             </p>
             <h2 className="mt-1 truncate text-base font-bold text-foreground">{product.name}</h2>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{product.reference}</p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('inventory.common.close')}
             className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
@@ -242,9 +245,9 @@ export function ProductDetailModal({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {editing ? (
             <form onSubmit={handleSave} className="space-y-6">
-              <Section title="Product">
+              <Section title={t('inventory.productDetail.sectionProduct')}>
                 <div>
-                  <label className={labelClassName}>Name</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.name')}</label>
                   <input
                     className={fieldInputClassName(fieldErrors.name)}
                     value={form.name}
@@ -253,7 +256,7 @@ export function ProductDetailModal({
                   <FieldError message={fieldErrors.name} />
                 </div>
                 <div>
-                  <label className={labelClassName}>SKU / Reference</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.skuReference')}</label>
                   <input
                     className={fieldInputClassName(fieldErrors.reference)}
                     value={form.reference}
@@ -263,7 +266,7 @@ export function ProductDetailModal({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClassName}>Price</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.price')}</label>
                     <input
                       type="number"
                       min="0"
@@ -275,7 +278,7 @@ export function ProductDetailModal({
                     <FieldError message={fieldErrors.price} />
                   </div>
                   <div>
-                    <label className={labelClassName}>Quantity</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.quantity')}</label>
                     <input
                       type="number"
                       min="0"
@@ -288,7 +291,7 @@ export function ProductDetailModal({
                   </div>
                 </div>
                 <div>
-                  <label className={labelClassName}>Description</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.description')}</label>
                   <textarea
                     rows={2}
                     className={fieldInputClassName()}
@@ -297,7 +300,7 @@ export function ProductDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Synonyms / search keywords</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.synonymsLabel')}</label>
                   <input
                     className={fieldInputClassName()}
                     placeholder="e.g. oil filter, filtro de óleo"
@@ -307,28 +310,28 @@ export function ProductDetailModal({
                 </div>
               </Section>
 
-              <Section title="Classification">
+              <Section title={t('inventory.productDetail.sectionClassification')}>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClassName}>Category</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.category')}</label>
                     <select
                       className={fieldInputClassName()}
                       value={form.category}
                       onChange={(e) => updateField('category', e.target.value)}
                     >
-                      <option value="part">Part</option>
-                      <option value="lubricant">Lubricant</option>
+                      <option value="part">{t('inventory.productDetail.categoryPart')}</option>
+                      <option value="lubricant">{t('inventory.productDetail.categoryLubricant')}</option>
                     </select>
                   </div>
                   <div>
-                    <label className={labelClassName}>Subcategory</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.subcategory')}</label>
                     <select
                       className={fieldInputClassName()}
                       value={form.subcategory}
                       onChange={(e) => updateField('subcategory', e.target.value)}
                     >
                       <option value="" disabled>
-                        Select…
+                        {t('inventory.common.selectPlaceholder')}
                       </option>
                       {SUBCATEGORY_OPTIONS.map((opt) => (
                         <option key={opt} value={opt}>
@@ -339,7 +342,7 @@ export function ProductDetailModal({
                   </div>
                 </div>
                 <div>
-                  <label className={labelClassName}>Brand</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.brand')}</label>
                   <input
                     className={fieldInputClassName()}
                     value={form.brand}
@@ -347,7 +350,7 @@ export function ProductDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>OEM Reference</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.oemReference')}</label>
                   <input
                     className={fieldInputClassName()}
                     value={form.oemReference}
@@ -356,10 +359,10 @@ export function ProductDetailModal({
                 </div>
               </Section>
 
-              <Section title="Vehicle Fit">
+              <Section title={t('inventory.productDetail.sectionVehicleFit')}>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClassName}>Vehicle Make</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.vehicleMake')}</label>
                     <input
                       className={fieldInputClassName()}
                       value={form.vehicleMake}
@@ -367,7 +370,7 @@ export function ProductDetailModal({
                     />
                   </div>
                   <div>
-                    <label className={labelClassName}>Vehicle Model</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.vehicleModel')}</label>
                     <input
                       className={fieldInputClassName()}
                       value={form.vehicleModel}
@@ -377,7 +380,7 @@ export function ProductDetailModal({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClassName}>Year Start</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.yearStart')}</label>
                     <input
                       type="number"
                       className={fieldInputClassName()}
@@ -386,7 +389,7 @@ export function ProductDetailModal({
                     />
                   </div>
                   <div>
-                    <label className={labelClassName}>Year End</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.yearEnd')}</label>
                     <input
                       type="number"
                       className={fieldInputClassName()}
@@ -397,7 +400,7 @@ export function ProductDetailModal({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClassName}>Engine</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.engine')}</label>
                     <input
                       className={fieldInputClassName()}
                       value={form.engine}
@@ -405,7 +408,7 @@ export function ProductDetailModal({
                     />
                   </div>
                   <div>
-                    <label className={labelClassName}>Engine Number</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.engineNumber')}</label>
                     <input
                       className={fieldInputClassName()}
                       value={form.engineNumber}
@@ -415,10 +418,10 @@ export function ProductDetailModal({
                 </div>
               </Section>
 
-              <Section title="Lubricant Specs">
+              <Section title={t('inventory.productDetail.sectionLubricantSpecs')}>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClassName}>Viscosity</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.viscosity')}</label>
                     <input
                       className={fieldInputClassName()}
                       placeholder="e.g. 15W40"
@@ -427,7 +430,7 @@ export function ProductDetailModal({
                     />
                   </div>
                   <div>
-                    <label className={labelClassName}>Engine Type</label>
+                    <label className={labelClassName}>{t('inventory.productDetail.engineType')}</label>
                     <input
                       className={fieldInputClassName()}
                       value={form.engineType}
@@ -436,7 +439,7 @@ export function ProductDetailModal({
                   </div>
                 </div>
                 <div>
-                  <label className={labelClassName}>Volume (Liters)</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.volumeLiters')}</label>
                   <input
                     type="number"
                     step="0.01"
@@ -447,9 +450,9 @@ export function ProductDetailModal({
                 </div>
               </Section>
 
-              <Section title="Catalog Info">
+              <Section title={t('inventory.productDetail.sectionCatalogInfo')}>
                 <div>
-                  <label className={labelClassName}>Delivery Time</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.deliveryTime')}</label>
                   <input
                     className={fieldInputClassName()}
                     placeholder="e.g. Today"
@@ -458,7 +461,7 @@ export function ProductDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Specification</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.specification')}</label>
                   <input
                     className={fieldInputClassName()}
                     value={form.specification}
@@ -466,7 +469,7 @@ export function ProductDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Interval (Km)</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.intervalKm')}</label>
                   <input
                     type="number"
                     className={fieldInputClassName()}
@@ -475,7 +478,7 @@ export function ProductDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Image URL</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.imageUrl')}</label>
                   <input
                     className={fieldInputClassName()}
                     value={form.imageUrl}
@@ -484,9 +487,9 @@ export function ProductDetailModal({
                 </div>
               </Section>
 
-              <Section title="Supplier">
+              <Section title={t('inventory.productDetail.sectionSupplier')}>
                 <div>
-                  <label className={labelClassName}>Name</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.supplierName')}</label>
                   <input
                     className={fieldInputClassName(fieldErrors.supplierName)}
                     value={form.supplierName}
@@ -495,7 +498,7 @@ export function ProductDetailModal({
                   <FieldError message={fieldErrors.supplierName} />
                 </div>
                 <div>
-                  <label className={labelClassName}>Address</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.supplierAddress')}</label>
                   <input
                     className={fieldInputClassName()}
                     value={form.supplierAddress}
@@ -503,7 +506,7 @@ export function ProductDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Phone</label>
+                  <label className={labelClassName}>{t('inventory.productDetail.supplierPhone')}</label>
                   <input
                     className={fieldInputClassName()}
                     placeholder="e.g. 244 923 456 789"
@@ -521,65 +524,74 @@ export function ProductDetailModal({
                   onClick={onClose}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
                 >
-                  Cancel
+                  {t('inventory.common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-60"
                 >
-                  {saving ? 'Saving…' : 'Save'}
+                  {saving ? t('inventory.common.saving') : t('inventory.common.save')}
                 </button>
               </div>
             </form>
           ) : (
             <div className="space-y-6">
               {product.description && (
-                <Section title="Description">
+                <Section title={t('inventory.productDetail.sectionDescription')}>
                   <p className="text-sm text-foreground">{product.description}</p>
                 </Section>
               )}
 
-              <Section title="Classification">
-                <InfoRow label="Category" value={product.category || '—'} />
-                <InfoRow label="Subcategory" value={product.subcategory || '—'} />
-                <InfoRow label="Service Category" value={product.service_category || '—'} />
-                <InfoRow label="Brand" value={product.brand || '—'} />
-                <InfoRow label="OEM Reference" value={product.oem_reference || '—'} />
+              <Section title={t('inventory.productDetail.sectionClassification')}>
+                <InfoRow label={t('inventory.productDetail.category')} value={product.category || '—'} />
+                <InfoRow label={t('inventory.productDetail.subcategory')} value={product.subcategory || '—'} />
+                <InfoRow label={t('inventory.productDetail.serviceCategory')} value={product.service_category || '—'} />
+                <InfoRow label={t('inventory.productDetail.brand')} value={product.brand || '—'} />
+                <InfoRow label={t('inventory.productDetail.oemReference')} value={product.oem_reference || '—'} />
               </Section>
 
-              <Section title="Vehicle Fit">
-                <InfoRow label="Make / Model" value={vehicleFit || '—'} />
-                <InfoRow label="Year Range" value={yearRange || '—'} />
-                <InfoRow label="Engine" value={product.engine || '—'} />
-                <InfoRow label="Engine Number" value={product.engine_number || '—'} />
+              <Section title={t('inventory.productDetail.sectionVehicleFit')}>
+                <InfoRow label={t('inventory.productDetail.makeModel')} value={vehicleFit || '—'} />
+                <InfoRow label={t('inventory.productDetail.yearRange')} value={yearRange || '—'} />
+                <InfoRow label={t('inventory.productDetail.engine')} value={product.engine || '—'} />
+                <InfoRow label={t('inventory.productDetail.engineNumber')} value={product.engine_number || '—'} />
               </Section>
 
               {isLubricant && (
-                <Section title="Lubricant Specs">
-                  <InfoRow label="Viscosity" value={product.viscosity || '—'} />
-                  <InfoRow label="Engine Type" value={product.engine_type || '—'} />
-                  <InfoRow label="Volume" value={product.volume_liters != null ? `${product.volume_liters} L` : '—'} />
+                <Section title={t('inventory.productDetail.sectionLubricantSpecs')}>
+                  <InfoRow label={t('inventory.productDetail.viscosity')} value={product.viscosity || '—'} />
+                  <InfoRow label={t('inventory.productDetail.engineType')} value={product.engine_type || '—'} />
+                  <InfoRow
+                    label={t('inventory.productDetail.volume')}
+                    value={product.volume_liters != null ? `${product.volume_liters} L` : '—'}
+                  />
                 </Section>
               )}
 
-              <Section title="Catalog Info">
-                <InfoRow label="Delivery Time" value={product.delivery_time || '—'} />
-                <InfoRow label="Specification" value={product.specification || '—'} />
-                <InfoRow label="Interval" value={product.interval_km != null ? `${product.interval_km} km` : '—'} />
-                <InfoRow label="Synonyms" value={product.synonyms || '—'} />
+              <Section title={t('inventory.productDetail.sectionCatalogInfo')}>
+                <InfoRow label={t('inventory.productDetail.deliveryTime')} value={product.delivery_time || '—'} />
+                <InfoRow label={t('inventory.productDetail.specification')} value={product.specification || '—'} />
+                <InfoRow
+                  label={t('inventory.productDetail.interval')}
+                  value={product.interval_km != null ? `${product.interval_km} km` : '—'}
+                />
+                <InfoRow label={t('inventory.productDetail.synonymsLabel')} value={product.synonyms || '—'} />
               </Section>
 
-              <Section title="Stock &amp; Pricing">
-                <InfoRow label="Price" value={formatKwanza(product.price)} />
-                <InfoRow label="Stock" value={String(product.quantity)} />
-                <InfoRow label="Status" value={product.active === false ? 'Inactive' : 'Active'} />
+              <Section title={t('inventory.productDetail.sectionStockPricing')}>
+                <InfoRow label={t('inventory.productDetail.price')} value={formatKwanza(product.price)} />
+                <InfoRow label={t('inventory.productDetail.stock')} value={String(product.quantity)} />
+                <InfoRow
+                  label={t('inventory.common.status')}
+                  value={product.active === false ? t('inventory.common.inactive') : t('inventory.common.active')}
+                />
               </Section>
 
-              <Section title="Supplier">
-                <InfoRow label="Name" value={product.supplier || '—'} />
-                <InfoRow label="Address" value={product.supplier_address || '—'} />
-                <InfoRow label="Phone" value={product.supplier_phone || '—'} />
+              <Section title={t('inventory.productDetail.sectionSupplier')}>
+                <InfoRow label={t('inventory.productDetail.supplierName')} value={product.supplier || '—'} />
+                <InfoRow label={t('inventory.productDetail.supplierAddress')} value={product.supplier_address || '—'} />
+                <InfoRow label={t('inventory.productDetail.supplierPhone')} value={product.supplier_phone || '—'} />
               </Section>
             </div>
           )}

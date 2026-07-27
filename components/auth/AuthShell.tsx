@@ -1,15 +1,24 @@
+'use client';
+
 import type { ReactNode } from 'react';
 import { Car, Cog, Wrench } from 'lucide-react';
+import { LanguageToggle } from '@/components/LanguageToggle';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 /**
  * Two-column shell used by every auth page: a narrow form column (its
  * children) on the left and a decorative branded panel on the right.
  */
 export function AuthShell({ children }: { children: ReactNode }) {
+  const { t } = useLocale();
+
   return (
     <div className="flex min-h-screen bg-background">
-      <div className="flex w-full flex-col justify-center px-6 py-12 sm:px-12 lg:w-2/5 lg:px-16">
-        <div className="mx-auto w-full max-w-sm">{children}</div>
+      <div className="flex w-full flex-col px-6 py-12 sm:px-12 lg:w-2/5 lg:px-16">
+        <div className="flex justify-end">
+          <LanguageToggle />
+        </div>
+        <div className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center">{children}</div>
         <p className="mt-12 text-center text-xs text-muted-foreground">© Rede Peças {new Date().getFullYear()}</p>
       </div>
 
@@ -19,10 +28,8 @@ export function AuthShell({ children }: { children: ReactNode }) {
         <Wrench className="absolute bottom-10 left-10 h-64 w-64 -rotate-12 text-white/5" strokeWidth={0.75} />
         <Car className="absolute top-1/3 left-1/4 h-40 w-40 -rotate-6 text-white/10" strokeWidth={0.75} />
         <div className="relative z-10 flex flex-col justify-end p-16 text-white">
-          <h2 className="max-w-md text-3xl font-bold leading-tight">Keep every order moving, from request to pickup.</h2>
-          <p className="mt-4 max-w-sm text-sm text-white/70">
-            Approve customer orders, manage supplier inventory and keep Rede Peças running smoothly — all from one panel.
-          </p>
+          <h2 className="max-w-md text-3xl font-bold leading-tight">{t('auth.shell.tagline')}</h2>
+          <p className="mt-4 max-w-sm text-sm text-white/70">{t('auth.shell.description')}</p>
         </div>
       </div>
     </div>

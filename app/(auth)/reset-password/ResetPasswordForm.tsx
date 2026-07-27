@@ -8,6 +8,7 @@ import axios from 'axios';
 import { resetPassword } from '@/store/auth/authService';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { BrandMark } from '@/components/BrandMark';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const HAS_SPECIAL_CHAR = /[^A-Za-z0-9]/;
 
@@ -19,6 +20,7 @@ const HAS_SPECIAL_CHAR = /[^A-Za-z0-9]/;
 export function ResetPasswordForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t } = useLocale();
   const phone = searchParams.get('phone') ?? '';
 
   const [code, setCode] = useState('');
@@ -41,11 +43,11 @@ export function ResetPasswordForm() {
     setError('');
 
     if (!hasMinLength || !hasSpecialChar) {
-      setError('Password does not meet the requirements below.');
+      setError(t('auth.resetPassword.errorRequirements'));
       return;
     }
     if (newPassword !== confirmPassword) {
-      setError('Passwords do not match.');
+      setError(t('auth.resetPassword.errorMismatch'));
       return;
     }
 
@@ -54,7 +56,7 @@ export function ResetPasswordForm() {
       await resetPassword({ phone, code, newPassword });
       setDone(true);
     } catch (err) {
-      const fallback = 'Invalid or expired code. Please try again.';
+      const fallback = t('auth.resetPassword.genericError');
       setError(axios.isAxiosError<{ message?: string }>(err) ? err.response?.data?.message || fallback : fallback);
     } finally {
       setSubmitting(false);
@@ -67,15 +69,13 @@ export function ResetPasswordForm() {
         <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-success/10 text-success">
           <CheckCircle2 className="h-5 w-5" />
         </div>
-        <h1 className="mt-6 text-2xl font-bold text-foreground">Password reset</h1>
-        <p className="mt-1 text-sm text-muted-foreground">
-          Your password has been reset successfully. Sign in with your new password below.
-        </p>
+        <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.resetPassword.doneTitle')}</h1>
+        <p className="mt-1 text-sm text-muted-foreground">{t('auth.resetPassword.doneSubtitle')}</p>
         <button
           onClick={() => router.push('/login')}
           className="mt-8 w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90"
         >
-          Continue
+          {t('auth.resetPassword.continue')}
         </button>
       </div>
     );
@@ -84,13 +84,13 @@ export function ResetPasswordForm() {
   return (
     <div>
       <BrandMark />
-      <h1 className="mt-6 text-2xl font-bold text-foreground">Set new password</h1>
-      <p className="mt-1 text-sm text-muted-foreground">Enter the code we sent to your WhatsApp and choose a new password.</p>
+      <h1 className="mt-6 text-2xl font-bold text-foreground">{t('auth.resetPassword.title')}</h1>
+      <p className="mt-1 text-sm text-muted-foreground">{t('auth.resetPassword.subtitle')}</p>
 
       <form onSubmit={handleSubmit} className="mt-8 space-y-5">
         <div>
           <label htmlFor="code" className="mb-1.5 block text-sm font-medium text-foreground">
-            Verification code
+            {t('auth.resetPassword.codeLabel')}
           </label>
           <div className="relative">
             <KeyRound className="pointer-events-none absolute top-1/2 left-3.5 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -100,7 +100,7 @@ export function ResetPasswordForm() {
               inputMode="numeric"
               value={code}
               onChange={(e) => setCode(e.target.value)}
-              placeholder="6-digit code"
+              placeholder={t('auth.resetPassword.codePlaceholder')}
               className="w-full rounded-lg border border-input py-2.5 pr-4 pl-10 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
               required
             />
@@ -109,33 +109,33 @@ export function ResetPasswordForm() {
 
         <div>
           <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-foreground">
-            New password
+            {t('auth.resetPassword.newPasswordLabel')}
           </label>
           <PasswordInput
             id="new-password"
             value={newPassword}
             onChange={setNewPassword}
-            placeholder="Enter new password"
+            placeholder={t('auth.resetPassword.newPasswordPlaceholder')}
             autoComplete="new-password"
           />
         </div>
 
         <div>
           <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-foreground">
-            Confirm password
+            {t('auth.resetPassword.confirmPasswordLabel')}
           </label>
           <PasswordInput
             id="confirm-password"
             value={confirmPassword}
             onChange={setConfirmPassword}
-            placeholder="Re-enter new password"
+            placeholder={t('auth.resetPassword.confirmPasswordPlaceholder')}
             autoComplete="new-password"
           />
         </div>
 
         <ul className="space-y-1.5">
-          <ChecklistItem met={hasMinLength} label="Must be at least 8 characters" />
-          <ChecklistItem met={hasSpecialChar} label="Must contain one special character" />
+          <ChecklistItem met={hasMinLength} label={t('auth.resetPassword.reqMinLength')} />
+          <ChecklistItem met={hasSpecialChar} label={t('auth.resetPassword.reqSpecialChar')} />
         </ul>
 
         {error && (
@@ -150,7 +150,7 @@ export function ResetPasswordForm() {
           disabled={submitting}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60"
         >
-          {submitting ? 'Resetting…' : 'Reset password'}
+          {submitting ? t('auth.resetPassword.resetting') : t('auth.resetPassword.reset')}
         </button>
       </form>
 
@@ -159,7 +159,7 @@ export function ResetPasswordForm() {
         className="mt-6 flex items-center justify-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
       >
         <ArrowLeft className="h-4 w-4" />
-        Back to log in
+        {t('auth.resetPassword.backToLogin')}
       </Link>
     </div>
   );

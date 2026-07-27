@@ -6,6 +6,7 @@ import { formatKwanza } from '@/lib/format';
 import { useAppDispatch } from '@/store/hooks';
 import { updateService, type Service, type ServiceUpdateFields } from '@/store/services/servicesSlice';
 import { Section, InfoRow } from '@/components/DetailPanel';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const baseInputClassName =
   'w-full rounded-lg border px-3 py-2 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
@@ -40,25 +41,27 @@ type FormState = {
  * Validates the service edit form, returning a map of field name to error
  * message for any required or malformed fields (name, category, price, duration, provider name).
  */
-function validate(form: FormState): Record<string, string> {
+function validate(form: FormState, t: (path: string) => string): Record<string, string> {
   const errors: Record<string, string> = {};
+  const required = t('inventory.common.requiredError');
+  const nonNegative = t('inventory.common.nonNegativeError');
 
-  if (!form.serviceName.trim()) errors.serviceName = 'Required.';
-  if (!form.serviceCategory.trim()) errors.serviceCategory = 'Required.';
+  if (!form.serviceName.trim()) errors.serviceName = required;
+  if (!form.serviceCategory.trim()) errors.serviceCategory = required;
 
   if (!form.serviceBasePrice.trim()) {
-    errors.serviceBasePrice = 'Required.';
+    errors.serviceBasePrice = required;
   } else if (Number.isNaN(Number(form.serviceBasePrice)) || Number(form.serviceBasePrice) < 0) {
-    errors.serviceBasePrice = 'Must be 0 or more.';
+    errors.serviceBasePrice = nonNegative;
   }
 
   if (!form.serviceDurationH.trim()) {
-    errors.serviceDurationH = 'Required.';
+    errors.serviceDurationH = required;
   } else if (Number.isNaN(Number(form.serviceDurationH)) || Number(form.serviceDurationH) < 0) {
-    errors.serviceDurationH = 'Must be 0 or more.';
+    errors.serviceDurationH = nonNegative;
   }
 
-  if (!form.providerName.trim()) errors.providerName = 'Required.';
+  if (!form.providerName.trim()) errors.providerName = required;
 
   return errors;
 }
@@ -89,6 +92,7 @@ export function ServiceDetailModal({
   onSaved: (message: string) => void;
 }) {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const editing = initialEditing;
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -123,10 +127,10 @@ export function ServiceDetailModal({
   const handleSave = async (e: FormEvent) => {
     e.preventDefault();
 
-    const errors = validate(form);
+    const errors = validate(form, t);
     setFieldErrors(errors);
     if (Object.keys(errors).length > 0) {
-      setError('Fix the highlighted fields before saving.');
+      setError(t('inventory.common.fixFieldsError'));
       return;
     }
 
@@ -151,10 +155,10 @@ export function ServiceDetailModal({
     setSaving(false);
 
     if (updateService.fulfilled.match(result)) {
-      onSaved(`Service ${form.serviceName || service.service_name} updated.`);
+      onSaved(t('inventory.serviceDetail.updateSuccess', { name: form.serviceName || service.service_name }));
       onClose();
     } else {
-      setError((result.payload as string) || 'Failed to update the service.');
+      setError((result.payload as string) || t('inventory.serviceDetail.updateFailure'));
     }
   };
 
@@ -167,14 +171,14 @@ export function ServiceDetailModal({
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div className="min-w-0">
             <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
-              {editing ? 'Edit Service' : 'Service'}
+              {editing ? t('inventory.serviceDetail.editTitle') : t('inventory.serviceDetail.viewTitle')}
             </p>
             <h2 className="mt-1 truncate text-base font-bold text-foreground">{service.service_name}</h2>
             <p className="mt-0.5 text-xs text-muted-foreground">{service.service_category}</p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('inventory.common.close')}
             className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
@@ -184,9 +188,9 @@ export function ServiceDetailModal({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {editing ? (
             <form onSubmit={handleSave} className="space-y-6">
-              <Section title="Service">
+              <Section title={t('inventory.serviceDetail.sectionService')}>
                 <div>
-                  <label className={labelClassName}>Name</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.name')}</label>
                   <input
                     className={fieldInputClassName(fieldErrors.serviceName)}
                     value={form.serviceName}
@@ -195,7 +199,7 @@ export function ServiceDetailModal({
                   <FieldError message={fieldErrors.serviceName} />
                 </div>
                 <div>
-                  <label className={labelClassName}>Category</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.category')}</label>
                   <select
                     className={fieldInputClassName(fieldErrors.serviceCategory)}
                     value={form.serviceCategory}
@@ -211,7 +215,7 @@ export function ServiceDetailModal({
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
-                    <label className={labelClassName}>Base Price</label>
+                    <label className={labelClassName}>{t('inventory.serviceDetail.basePrice')}</label>
                     <input
                       type="number"
                       min="0"
@@ -223,7 +227,7 @@ export function ServiceDetailModal({
                     <FieldError message={fieldErrors.serviceBasePrice} />
                   </div>
                   <div>
-                    <label className={labelClassName}>Duration (h)</label>
+                    <label className={labelClassName}>{t('inventory.serviceDetail.durationH')}</label>
                     <input
                       type="number"
                       min="0"
@@ -244,11 +248,11 @@ export function ServiceDetailModal({
                     className="h-4 w-4 rounded border-input"
                   />
                   <label htmlFor="availableAtHome" className="text-xs font-semibold text-muted-foreground">
-                    Available at home
+                    {t('inventory.serviceDetail.availableAtHome')}
                   </label>
                 </div>
                 <div>
-                  <label className={labelClassName}>Base Travel Fee</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.baseTravelFee')}</label>
                   <input
                     type="number"
                     min="0"
@@ -259,7 +263,7 @@ export function ServiceDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Logistics Fee Notes</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.logisticsFeeNotes')}</label>
                   <textarea
                     rows={2}
                     className={fieldInputClassName()}
@@ -269,9 +273,9 @@ export function ServiceDetailModal({
                 </div>
               </Section>
 
-              <Section title="Provider">
+              <Section title={t('inventory.serviceDetail.sectionProvider')}>
                 <div>
-                  <label className={labelClassName}>Name</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.name')}</label>
                   <input
                     className={fieldInputClassName(fieldErrors.providerName)}
                     value={form.providerName}
@@ -280,7 +284,7 @@ export function ServiceDetailModal({
                   <FieldError message={fieldErrors.providerName} />
                 </div>
                 <div>
-                  <label className={labelClassName}>Address</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.address')}</label>
                   <input
                     className={fieldInputClassName()}
                     value={form.providerAddress}
@@ -288,7 +292,7 @@ export function ServiceDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Province</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.province')}</label>
                   <input
                     className={fieldInputClassName()}
                     value={form.providerProvince}
@@ -296,7 +300,7 @@ export function ServiceDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Phone</label>
+                  <label className={labelClassName}>{t('inventory.serviceDetail.phone')}</label>
                   <input
                     className={fieldInputClassName()}
                     placeholder="e.g. 244 923 456 789"
@@ -314,40 +318,49 @@ export function ServiceDetailModal({
                   onClick={onClose}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
                 >
-                  Cancel
+                  {t('inventory.common.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-60"
                 >
-                  {saving ? 'Saving…' : 'Save'}
+                  {saving ? t('inventory.common.saving') : t('inventory.common.save')}
                 </button>
               </div>
             </form>
           ) : (
             <div className="space-y-6">
-              <Section title="Service">
-                <InfoRow label="Category" value={service.service_category} />
-                <InfoRow label="Base Price" value={formatKwanza(service.service_base_price)} />
-                <InfoRow label="Duration" value={`${service.service_duration_h} h`} />
-                <InfoRow label="Available at Home" value={service.available_at_home ? 'Yes' : 'No'} />
+              <Section title={t('inventory.serviceDetail.sectionService')}>
+                <InfoRow label={t('inventory.serviceDetail.category')} value={service.service_category} />
+                <InfoRow label={t('inventory.serviceDetail.basePrice')} value={formatKwanza(service.service_base_price)} />
+                <InfoRow label={t('inventory.serviceDetail.duration')} value={`${service.service_duration_h} h`} />
                 <InfoRow
-                  label="Base Travel Fee"
+                  label={t('inventory.serviceDetail.availableAtHomeLabel')}
+                  value={service.available_at_home ? t('inventory.common.yes') : t('inventory.common.no')}
+                />
+                <InfoRow
+                  label={t('inventory.serviceDetail.baseTravelFee')}
                   value={service.base_travel_fee != null ? formatKwanza(service.base_travel_fee) : '—'}
                 />
-                <InfoRow label="Logistics Fee Notes" value={service.logistics_fee_notes || '—'} />
-                <InfoRow label="Status" value={service.active === false ? 'Inactive' : 'Active'} />
+                <InfoRow label={t('inventory.serviceDetail.logisticsFeeNotes')} value={service.logistics_fee_notes || '—'} />
+                <InfoRow
+                  label={t('inventory.common.status')}
+                  value={service.active === false ? t('inventory.common.inactive') : t('inventory.common.active')}
+                />
               </Section>
 
-              <Section title="Provider">
-                <InfoRow label="Name" value={service.provider_name || '—'} />
-                <InfoRow label="Address" value={service.provider_address || '—'} />
-                <InfoRow label="Province" value={service.provider_province || '—'} />
-                <InfoRow label="Phone" value={service.provider_phone || '—'} />
-                <InfoRow label="Specialties" value={service.provider_specialties || '—'} />
-                <InfoRow label="Rating" value={service.provider_rating != null ? String(service.provider_rating) : '—'} />
-                <InfoRow label="Response Time" value={service.provider_response_time || '—'} />
+              <Section title={t('inventory.serviceDetail.sectionProvider')}>
+                <InfoRow label={t('inventory.serviceDetail.name')} value={service.provider_name || '—'} />
+                <InfoRow label={t('inventory.serviceDetail.address')} value={service.provider_address || '—'} />
+                <InfoRow label={t('inventory.serviceDetail.province')} value={service.provider_province || '—'} />
+                <InfoRow label={t('inventory.serviceDetail.phone')} value={service.provider_phone || '—'} />
+                <InfoRow label={t('inventory.serviceDetail.specialties')} value={service.provider_specialties || '—'} />
+                <InfoRow
+                  label={t('inventory.serviceDetail.rating')}
+                  value={service.provider_rating != null ? String(service.provider_rating) : '—'}
+                />
+                <InfoRow label={t('inventory.serviceDetail.responseTime')} value={service.provider_response_time || '—'} />
               </Section>
             </div>
           )}

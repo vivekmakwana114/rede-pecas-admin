@@ -7,6 +7,7 @@ import { changePassword } from '@/store/auth/authService';
 import { PasswordInput } from '@/components/auth/PasswordInput';
 import { Toast } from '@/components/dashboard/Toast';
 import { useToast } from '@/components/dashboard/useToast';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const HAS_SPECIAL_CHAR = /[^A-Za-z0-9]/;
 
@@ -15,6 +16,7 @@ const HAS_SPECIAL_CHAR = /[^A-Za-z0-9]/;
  * validation of the new password's requirements before submission.
  */
 export function ChangePasswordForm() {
+  const { t } = useLocale();
   const { toast, showToast } = useToast();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -39,15 +41,15 @@ export function ChangePasswordForm() {
     const confirm = String(data.get('confirm-password') ?? '');
 
     if (next.length < 8 || !HAS_SPECIAL_CHAR.test(next)) {
-      setError('New password does not meet the requirements below.');
+      setError(t('profile.changePassword.errorRequirements'));
       return;
     }
     if (next !== confirm) {
-      setError('New passwords do not match.');
+      setError(t('profile.changePassword.errorMismatch'));
       return;
     }
     if (next === current) {
-      setError('New password must be different from your current password.');
+      setError(t('profile.changePassword.errorSameAsCurrent'));
       return;
     }
 
@@ -57,9 +59,9 @@ export function ChangePasswordForm() {
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
-      showToast('Password changed successfully.', 'success');
+      showToast(t('profile.changePassword.successToast'), 'success');
     } catch (err) {
-      const fallback = 'Failed to change password.';
+      const fallback = t('profile.changePassword.genericError');
       setError(axios.isAxiosError<{ message?: string }>(err) ? err.response?.data?.message || fallback : fallback);
     } finally {
       setSubmitting(false);
@@ -70,53 +72,53 @@ export function ChangePasswordForm() {
     <section className="rounded-xl border border-border/80 bg-background p-6 shadow-sm">
       <div className="flex items-center gap-2">
         <KeyRound className="h-4 w-4 text-muted-foreground" />
-        <h2 className="text-sm font-bold text-foreground">Change password</h2>
+        <h2 className="text-sm font-bold text-foreground">{t('profile.changePassword.title')}</h2>
       </div>
-      <p className="mt-1 text-xs text-muted-foreground">Choose a new password for your admin account.</p>
+      <p className="mt-1 text-xs text-muted-foreground">{t('profile.changePassword.subtitle')}</p>
 
       <form onSubmit={handleSubmit} className="mt-5 space-y-4">
         <div>
           <label htmlFor="current-password" className="mb-1.5 block text-sm font-medium text-foreground">
-            Current password
+            {t('profile.changePassword.currentPasswordLabel')}
           </label>
           <PasswordInput
             id="current-password"
             value={currentPassword}
             onChange={setCurrentPassword}
-            placeholder="Enter current password"
+            placeholder={t('profile.changePassword.currentPasswordPlaceholder')}
             autoComplete="current-password"
           />
         </div>
 
         <div>
           <label htmlFor="new-password" className="mb-1.5 block text-sm font-medium text-foreground">
-            New password
+            {t('profile.changePassword.newPasswordLabel')}
           </label>
           <PasswordInput
             id="new-password"
             value={newPassword}
             onChange={setNewPassword}
-            placeholder="Enter new password"
+            placeholder={t('profile.changePassword.newPasswordPlaceholder')}
             autoComplete="new-password"
           />
         </div>
 
         <div>
           <label htmlFor="confirm-password" className="mb-1.5 block text-sm font-medium text-foreground">
-            Confirm new password
+            {t('profile.changePassword.confirmPasswordLabel')}
           </label>
           <PasswordInput
             id="confirm-password"
             value={confirmPassword}
             onChange={setConfirmPassword}
-            placeholder="Re-enter new password"
+            placeholder={t('profile.changePassword.confirmPasswordPlaceholder')}
             autoComplete="new-password"
           />
         </div>
 
         <ul className="space-y-1.5">
-          <ChecklistItem met={hasMinLength} label="Must be at least 8 characters" />
-          <ChecklistItem met={hasSpecialChar} label="Must contain one special character" />
+          <ChecklistItem met={hasMinLength} label={t('profile.changePassword.reqMinLength')} />
+          <ChecklistItem met={hasSpecialChar} label={t('profile.changePassword.reqSpecialChar')} />
         </ul>
 
         {error && (
@@ -131,7 +133,7 @@ export function ChangePasswordForm() {
           disabled={submitting}
           className="w-full rounded-lg bg-primary py-2.5 text-sm font-semibold text-primary-foreground transition-all hover:bg-primary/90 disabled:opacity-60"
         >
-          {submitting ? 'Changing…' : 'Change password'}
+          {submitting ? t('profile.changePassword.submitting') : t('profile.changePassword.submit')}
         </button>
       </form>
 

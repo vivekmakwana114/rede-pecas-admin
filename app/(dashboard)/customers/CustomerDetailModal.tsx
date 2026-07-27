@@ -7,6 +7,7 @@ import { useAppDispatch } from '@/store/hooks';
 import { updateCustomer, type Customer, type CustomerUpdateFields } from '@/store/customers/customersSlice';
 import { Section, InfoRow } from '@/components/DetailPanel';
 import { VehiclePlate } from './VehiclePlate';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const baseInputClassName =
   'w-full rounded-lg border border-input px-3 py-2 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring';
@@ -29,6 +30,7 @@ export function CustomerDetailModal({
   onSaved: (message: string) => void;
 }) {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const [editing, setEditing] = useState(initialEditing);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -59,10 +61,10 @@ export function CustomerDetailModal({
     setSaving(false);
 
     if (updateCustomer.fulfilled.match(result)) {
-      onSaved(`Customer ${form.name || customer.phone} updated.`);
+      onSaved(t('customers.detail.updateSuccess', { name: form.name || customer.phone }));
       onClose();
     } else {
-      setError((result.payload as string) || 'Failed to update the customer.');
+      setError((result.payload as string) || t('customers.detail.updateFailure'));
     }
   };
 
@@ -75,14 +77,14 @@ export function CustomerDetailModal({
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div className="min-w-0">
             <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
-              {editing ? 'Edit Customer' : 'Customer'}
+              {editing ? t('customers.detail.editTitle') : t('customers.detail.viewTitle')}
             </p>
             <h2 className="mt-1 truncate text-base font-bold text-foreground">{customer.name}</h2>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{customer.phone}</p>
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('customers.detail.close')}
             className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
@@ -92,9 +94,9 @@ export function CustomerDetailModal({
         <div className="flex-1 overflow-y-auto px-6 py-6">
           {editing ? (
             <form onSubmit={handleSave} className="space-y-6">
-              <Section title="Profile">
+              <Section title={t('customers.detail.sectionProfile')}>
                 <div>
-                  <label className={labelClassName}>Name</label>
+                  <label className={labelClassName}>{t('customers.detail.name')}</label>
                   <input
                     className={baseInputClassName}
                     value={form.name}
@@ -103,7 +105,7 @@ export function CustomerDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>NIF</label>
+                  <label className={labelClassName}>{t('customers.detail.nif')}</label>
                   <input
                     className={baseInputClassName}
                     value={form.nif}
@@ -111,7 +113,7 @@ export function CustomerDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Address</label>
+                  <label className={labelClassName}>{t('customers.detail.address')}</label>
                   <input
                     className={baseInputClassName}
                     value={form.address}
@@ -119,7 +121,7 @@ export function CustomerDetailModal({
                   />
                 </div>
                 <div>
-                  <label className={labelClassName}>Email</label>
+                  <label className={labelClassName}>{t('customers.detail.email')}</label>
                   <input
                     type="email"
                     className={baseInputClassName}
@@ -137,27 +139,27 @@ export function CustomerDetailModal({
                   onClick={() => setEditing(false)}
                   className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
                 >
-                  Cancel
+                  {t('customers.detail.cancel')}
                 </button>
                 <button
                   type="submit"
                   disabled={saving}
                   className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground transition-all hover:opacity-90 disabled:opacity-60"
                 >
-                  {saving ? 'Saving…' : 'Save'}
+                  {saving ? t('customers.detail.saving') : t('customers.detail.save')}
                 </button>
               </div>
             </form>
           ) : (
             <div className="space-y-6">
-              <Section title="Profile">
-                <InfoRow label="NIF" value={customer.nif || '—'} />
-                <InfoRow label="Address" value={customer.address || '—'} />
-                <InfoRow label="Email" value={customer.email || '—'} />
-                <InfoRow label="Joined" value={customer.createdAt} />
+              <Section title={t('customers.detail.sectionProfile')}>
+                <InfoRow label={t('customers.detail.nif')} value={customer.nif || '—'} />
+                <InfoRow label={t('customers.detail.address')} value={customer.address || '—'} />
+                <InfoRow label={t('customers.detail.email')} value={customer.email || '—'} />
+                <InfoRow label={t('customers.detail.joined')} value={customer.createdAt} />
               </Section>
 
-              <Section title="Vehicles">
+              <Section title={t('customers.detail.sectionVehicles')}>
                 {customer.vehicles.length > 0 ? (
                   <div className="space-y-2">
                     {customer.vehicles.map((vehicle, index) => (
@@ -165,13 +167,13 @@ export function CustomerDetailModal({
                     ))}
                   </div>
                 ) : (
-                  <p className="text-xs text-muted-foreground">No vehicles on file.</p>
+                  <p className="text-xs text-muted-foreground">{t('customers.detail.noVehicles')}</p>
                 )}
               </Section>
 
-              <Section title="Activity">
-                <InfoRow label="Orders" value={String(customer.ordersCount)} />
-                <InfoRow label="Total Spent" value={formatKwanza(customer.totalSpent)} />
+              <Section title={t('customers.detail.sectionActivity')}>
+                <InfoRow label={t('customers.detail.orders')} value={String(customer.ordersCount)} />
+                <InfoRow label={t('customers.detail.totalSpent')} value={formatKwanza(customer.totalSpent)} />
               </Section>
             </div>
           )}

@@ -1,6 +1,7 @@
 'use client';
 
 import { TriangleAlert } from 'lucide-react';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 /**
  * Modal confirmation prompt with a title, message, and confirm/cancel buttons.
@@ -9,8 +10,8 @@ import { TriangleAlert } from 'lucide-react';
 export function ConfirmDialog({
   title,
   message,
-  confirmLabel = 'Confirm',
-  cancelLabel = 'Cancel',
+  confirmLabel,
+  cancelLabel,
   destructive = false,
   onConfirm,
   onCancel,
@@ -23,6 +24,8 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const { t } = useLocale();
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={onCancel}>
       <div className="w-full max-w-sm rounded-xl bg-background p-5 shadow-lg" onClick={(e) => e.stopPropagation()}>
@@ -40,7 +43,7 @@ export function ConfirmDialog({
             onClick={onCancel}
             className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
           >
-            {cancelLabel}
+            {cancelLabel ?? t('common.cancel')}
           </button>
           <button
             onClick={onConfirm}
@@ -50,7 +53,7 @@ export function ConfirmDialog({
                 : 'bg-primary text-primary-foreground hover:opacity-90'
             }`}
           >
-            {confirmLabel}
+            {confirmLabel ?? t('common.confirm')}
           </button>
         </div>
       </div>
