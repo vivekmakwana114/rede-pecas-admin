@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Poppins, JetBrains_Mono } from 'next/font/google';
 import './globals.css';
 import { StoreProvider } from '@/store/provider';
+import { LocaleProvider } from '@/lib/i18n/LocaleContext';
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -31,7 +32,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" className={`${poppins.variable} ${jetbrainsMono.variable}`}>
       <body>
-        <StoreProvider>{children}</StoreProvider>
+        <StoreProvider>
+          <LocaleProvider>{children}</LocaleProvider>
+        </StoreProvider>
       </body>
     </html>
   );

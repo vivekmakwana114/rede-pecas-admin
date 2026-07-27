@@ -10,6 +10,7 @@ import type { GridColumn } from '@/components/Grid/types';
 import { RowActionsMenu } from '@/components/RowActionsMenu';
 import { ConfirmDialog } from '@/components/ConfirmDialog';
 import { ServiceDetailModal } from './ServiceDetailModal';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 import type { Service } from './types';
 
 /**
@@ -24,6 +25,7 @@ export function ServicesGrid({
   onImportClick: () => void;
 }) {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const { services, status } = useAppSelector((state) => state.services);
   const [query, setQuery] = useState('');
   const [detailService, setDetailService] = useState<{ service: Service; editing: boolean } | null>(null);
@@ -44,17 +46,17 @@ export function ServicesGrid({
    */
   const handleDeactivate = (service: Service) => {
     setConfirmDialog({
-      title: `Deactivate service ${service.service_name}?`,
-      message: 'It will stop being offered to customers until reactivated. You can turn it back on any time from this same menu.',
-      confirmLabel: 'Deactivate',
+      title: t('inventory.services.deactivateTitle', { name: service.service_name }),
+      message: t('inventory.services.deactivateMessage'),
+      confirmLabel: t('inventory.services.deactivateConfirm'),
       onConfirm: async () => {
         setConfirmDialog(null);
         const result = await dispatch(updateService({ id: service.id, fields: { active: false } }));
         if (updateService.fulfilled.match(result)) {
-          showToast(`Service ${service.service_name} deactivated.`, 'success');
+          showToast(t('inventory.services.deactivateSuccess', { name: service.service_name }), 'success');
           dispatch(fetchServices());
         } else {
-          showToast('Failed to deactivate the service.', 'error');
+          showToast(t('inventory.services.deactivateFailure'), 'error');
         }
       },
     });
@@ -67,10 +69,10 @@ export function ServicesGrid({
   const handleActivate = async (service: Service) => {
     const result = await dispatch(updateService({ id: service.id, fields: { active: true } }));
     if (updateService.fulfilled.match(result)) {
-      showToast(`Service ${service.service_name} activated.`, 'success');
+      showToast(t('inventory.services.activateSuccess', { name: service.service_name }), 'success');
       dispatch(fetchServices());
     } else {
-      showToast('Failed to activate the service.', 'error');
+      showToast(t('inventory.services.activateFailure'), 'error');
     }
   };
 
@@ -80,17 +82,17 @@ export function ServicesGrid({
    */
   const handleDelete = (service: Service) => {
     setConfirmDialog({
-      title: `Permanently delete service ${service.service_name}?`,
-      message: 'This removes it from the database entirely and cannot be undone.',
-      confirmLabel: 'Delete permanently',
+      title: t('inventory.services.deleteTitle', { name: service.service_name }),
+      message: t('inventory.services.deleteMessage'),
+      confirmLabel: t('inventory.services.deleteConfirm'),
       onConfirm: async () => {
         setConfirmDialog(null);
         const result = await dispatch(deleteService(service.id));
         if (deleteService.fulfilled.match(result)) {
-          showToast(`Service ${service.service_name} permanently deleted.`, 'success');
+          showToast(t('inventory.services.deleteSuccess', { name: service.service_name }), 'success');
           dispatch(fetchServices());
         } else {
-          showToast((result.payload as string) || 'Failed to delete the service.', 'error');
+          showToast((result.payload as string) || t('inventory.services.deleteFailure'), 'error');
         }
       },
     });
@@ -109,37 +111,37 @@ export function ServicesGrid({
   const columns: GridColumn<Service>[] = [
     {
       key: 'provider_name',
-      header: 'Provider Name',
+      header: t('inventory.services.columns.providerName'),
       sortable: true,
       sortValue: (row) => row.provider_name ?? '',
       cell: (row) => <span className="text-sm text-muted-foreground">{row.provider_name || '—'}</span>,
     },
     {
       key: 'provider_address',
-      header: 'Address',
+      header: t('inventory.services.columns.address'),
       cell: (row) => <span className="text-sm text-muted-foreground">{row.provider_address || '—'}</span>,
     },
     {
       key: 'provider_province',
-      header: 'Province',
+      header: t('inventory.services.columns.province'),
       sortable: true,
       sortValue: (row) => row.provider_province ?? '',
       cell: (row) => <span className="text-sm text-muted-foreground">{row.provider_province || '—'}</span>,
     },
     {
       key: 'provider_phone',
-      header: 'Phone',
+      header: t('inventory.services.columns.phone'),
       cell: (row) => <span className="text-sm text-muted-foreground">{row.provider_phone || '—'}</span>,
     },
     {
       key: 'provider_specialties',
-      header: 'Specialties',
+      header: t('inventory.services.columns.specialties'),
       cellClassName: 'max-w-xs',
       cell: (row) => <span className="line-clamp-2 text-sm text-muted-foreground">{row.provider_specialties || '—'}</span>,
     },
     {
       key: 'provider_rating',
-      header: 'Rating',
+      header: t('inventory.services.columns.rating'),
       sortable: true,
       align: 'right',
       sortValue: (row) => row.provider_rating ?? 0,
@@ -147,19 +149,19 @@ export function ServicesGrid({
     },
     {
       key: 'provider_response_time',
-      header: 'Response Time',
+      header: t('inventory.services.columns.responseTime'),
       cell: (row) => <span className="text-sm text-muted-foreground">{row.provider_response_time || '—'}</span>,
     },
     {
       key: 'service_name',
-      header: 'Service Name',
+      header: t('inventory.services.columns.serviceName'),
       sortable: true,
       sortValue: (row) => row.service_name,
       cell: (row) => <span className="font-semibold text-foreground">{row.service_name}</span>,
     },
     {
       key: 'service_category',
-      header: 'Service Category',
+      header: t('inventory.services.columns.serviceCategory'),
       sortable: true,
       sortValue: (row) => row.service_category,
       cell: (row) => (
@@ -170,7 +172,7 @@ export function ServicesGrid({
     },
     {
       key: 'service_base_price',
-      header: 'Service Base Price',
+      header: t('inventory.services.columns.serviceBasePrice'),
       sortable: true,
       align: 'right',
       sortValue: (row) => row.service_base_price,
@@ -178,7 +180,7 @@ export function ServicesGrid({
     },
     {
       key: 'service_duration_h',
-      header: 'Service Duration H',
+      header: t('inventory.services.columns.serviceDurationH'),
       sortable: true,
       align: 'right',
       sortValue: (row) => row.service_duration_h,
@@ -186,7 +188,7 @@ export function ServicesGrid({
     },
     {
       key: 'available_at_home',
-      header: 'Available At Home',
+      header: t('inventory.services.columns.availableAtHome'),
       align: 'center',
       cell: (row) => (
         <span
@@ -196,25 +198,25 @@ export function ServicesGrid({
               : 'border-border bg-muted text-muted-foreground'
           }`}
         >
-          {row.available_at_home ? 'Yes' : 'No'}
+          {row.available_at_home ? t('inventory.common.yes') : t('inventory.common.no')}
         </span>
       ),
     },
     {
       key: 'base_travel_fee',
-      header: 'Base Travel Fee',
+      header: t('inventory.services.columns.baseTravelFee'),
       align: 'right',
       cell: (row) => <span className="text-sm text-muted-foreground">{row.base_travel_fee != null ? formatKwanza(row.base_travel_fee) : '—'}</span>,
     },
     {
       key: 'logistics_fee_notes',
-      header: 'Logistics Fee Notes',
+      header: t('inventory.services.columns.logisticsFeeNotes'),
       cellClassName: 'max-w-xs',
       cell: (row) => <span className="line-clamp-2 text-sm text-muted-foreground">{row.logistics_fee_notes || '—'}</span>,
     },
     {
       key: 'status',
-      header: 'Status',
+      header: t('inventory.services.columns.status'),
       align: 'center',
       cell: (row) => (
         <span
@@ -224,26 +226,26 @@ export function ServicesGrid({
               : 'border-success/30 bg-success/10 text-success'
           }`}
         >
-          {row.active === false ? 'Inactive' : 'Active'}
+          {row.active === false ? t('inventory.common.inactive') : t('inventory.common.active')}
         </span>
       ),
     },
     {
       key: 'actions',
-      header: 'Actions',
+      header: t('inventory.services.columns.actions'),
       align: 'right',
       cell: (row) => (
         <div className="flex justify-end">
           <RowActionsMenu
             actions={[
-              { label: 'View service', icon: Eye, onClick: () => setDetailService({ service: row, editing: false }) },
-              { label: 'Edit service', icon: Pencil, onClick: () => setDetailService({ service: row, editing: true }) },
+              { label: t('inventory.services.viewService'), icon: Eye, onClick: () => setDetailService({ service: row, editing: false }) },
+              { label: t('inventory.services.editService'), icon: Pencil, onClick: () => setDetailService({ service: row, editing: true }) },
               ...(row.active === false
                 ? [
-                    { label: 'Activate service', icon: CheckCircle2, onClick: () => handleActivate(row) },
-                    { label: 'Delete service', icon: Trash2, destructive: true, onClick: () => handleDelete(row) },
+                    { label: t('inventory.services.activateService'), icon: CheckCircle2, onClick: () => handleActivate(row) },
+                    { label: t('inventory.services.deleteService'), icon: Trash2, destructive: true, onClick: () => handleDelete(row) },
                   ]
-                : [{ label: 'Deactivate service', icon: Ban, destructive: true, onClick: () => handleDeactivate(row) }]),
+                : [{ label: t('inventory.services.deactivateService'), icon: Ban, destructive: true, onClick: () => handleDeactivate(row) }]),
             ]}
           />
         </div>
@@ -254,7 +256,7 @@ export function ServicesGrid({
   return (
     <div className="space-y-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <h2 className="text-lg font-bold text-foreground">Services</h2>
+        <h2 className="text-lg font-bold text-foreground">{t('inventory.services.title')}</h2>
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <div className="relative w-full sm:w-64">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
@@ -262,7 +264,7 @@ export function ServicesGrid({
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search service, category, or provider…"
+              placeholder={t('inventory.services.searchPlaceholder')}
               className="w-full rounded-lg border border-input py-2.5 pl-9 pr-4 text-sm text-foreground placeholder:text-placeholder-color transition-all focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring"
             />
           </div>
@@ -272,7 +274,7 @@ export function ServicesGrid({
             className="flex shrink-0 items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:opacity-90"
           >
             <Upload className="h-4 w-4" />
-            Import Services
+            {t('inventory.services.importButton')}
           </button>
         </div>
       </div>
@@ -285,10 +287,10 @@ export function ServicesGrid({
           status === 'loading' ? (
             <span className="inline-flex items-center gap-2 text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Loading services…
+              {t('inventory.services.loading')}
             </span>
           ) : (
-            'No services yet — import a service file to get started.'
+            t('inventory.services.empty')
           )
         }
       />

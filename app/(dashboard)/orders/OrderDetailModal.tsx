@@ -5,7 +5,8 @@ import { Loader2, TriangleAlert, X } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { getOrderDetail } from '@/store/orders/ordersService';
 import { Section, InfoRow } from '@/components/DetailPanel';
-import { RAW_STATUS_LABELS } from './orderStatusLabels';
+import { getRawStatusLabel } from './orderStatusLabels';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface OrderDetail {
   number: string;
@@ -49,6 +50,7 @@ export function OrderDetailModal({
   onClose: () => void;
   onViewProof: () => void;
 }) {
+  const { t } = useLocale();
   const [detail, setDetail] = useState<OrderDetail | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -60,13 +62,13 @@ export function OrderDetailModal({
         if (!cancelled) setDetail(res.data.data as OrderDetail);
       })
       .catch(() => {
-        if (!cancelled) setError('Could not load order details.');
+        if (!cancelled) setError(t('orders.detail.loadError'));
       });
 
     return () => {
       cancelled = true;
     };
-  }, [orderNumber]);
+  }, [orderNumber, t]);
 
   const total = detail ? Number(detail.unit_price) + Number(detail.service_price || 0) : 0;
 
@@ -78,17 +80,15 @@ export function OrderDetailModal({
       >
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div className="min-w-0">
-            <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">Order</p>
+            <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">{t('orders.detail.orderLabel')}</p>
             <h2 className="mt-1 truncate text-base font-bold text-foreground">#{orderNumber}</h2>
             {detail && (
-              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">
-                {RAW_STATUS_LABELS[detail.status] ?? detail.status}
-              </p>
+              <p className="mt-0.5 text-xs font-semibold text-muted-foreground">{getRawStatusLabel(t, detail.status)}</p>
             )}
           </div>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('orders.detail.close')}
             className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
@@ -107,20 +107,20 @@ export function OrderDetailModal({
             </div>
           ) : (
             <div className="space-y-6">
-              <Section title="Order">
-                <InfoRow label="Customer" value={detail.customer_phone} />
-                <InfoRow label="Payment Method" value={formatLabel(detail.payment_method)} />
+              <Section title={t('orders.detail.sectionOrder')}>
+                <InfoRow label={t('orders.detail.customer')} value={detail.customer_phone} />
+                <InfoRow label={t('orders.detail.paymentMethod')} value={formatLabel(detail.payment_method)} />
               </Section>
 
-              <Section title="Part">
-                <InfoRow label="Part" value={detail.product_name} />
-                <InfoRow label="Reference" value={detail.reference || '—'} />
-                <InfoRow label="Supplier" value={detail.supplier_name || '—'} />
-                <InfoRow label="Quantity" value={String(detail.quantity)} />
-                <InfoRow label="Part Price" value={formatKwanza(Number(detail.unit_price))} />
+              <Section title={t('orders.detail.sectionPart')}>
+                <InfoRow label={t('orders.detail.part')} value={detail.product_name} />
+                <InfoRow label={t('orders.detail.reference')} value={detail.reference || '—'} />
+                <InfoRow label={t('orders.detail.supplier')} value={detail.supplier_name || '—'} />
+                <InfoRow label={t('orders.detail.quantity')} value={String(detail.quantity)} />
+                <InfoRow label={t('orders.detail.partPrice')} value={formatKwanza(Number(detail.unit_price))} />
                 {detail.service_name && (
                   <InfoRow
-                    label="Service"
+                    label={t('orders.detail.service')}
                     value={
                       detail.service_price != null
                         ? `${detail.service_name} · ${formatKwanza(Number(detail.service_price))}`
@@ -128,17 +128,17 @@ export function OrderDetailModal({
                     }
                   />
                 )}
-                <InfoRow label="Total" value={formatKwanza(total)} />
+                <InfoRow label={t('orders.detail.total')} value={formatKwanza(total)} />
               </Section>
 
-              <Section title="Vehicle">
-                <InfoRow label="Engine Number" value={detail.customer_engine_number || '—'} />
+              <Section title={t('orders.detail.sectionVehicle')}>
+                <InfoRow label={t('orders.detail.engineNumber')} value={detail.customer_engine_number || '—'} />
               </Section>
 
-              <Section title="Timeline">
-                <InfoRow label="Created" value={detail.created_at} />
-                <InfoRow label="Approved" value={detail.approved_at ?? '—'} />
-                <InfoRow label="Last Updated" value={detail.updated_at} />
+              <Section title={t('orders.detail.sectionTimeline')}>
+                <InfoRow label={t('orders.detail.created')} value={detail.created_at} />
+                <InfoRow label={t('orders.detail.approved')} value={detail.approved_at ?? '—'} />
+                <InfoRow label={t('orders.detail.lastUpdated')} value={detail.updated_at} />
               </Section>
             </div>
           )}
@@ -150,7 +150,7 @@ export function OrderDetailModal({
               onClick={onViewProof}
               className="rounded-lg border border-border px-3 py-1.5 text-xs font-semibold text-muted-foreground transition-all hover:bg-accent"
             >
-              View Payment Proof
+              {t('orders.detail.viewPaymentProof')}
             </button>
           </div>
         )}

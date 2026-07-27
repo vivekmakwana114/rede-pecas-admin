@@ -1,5 +1,8 @@
+'use client';
+
 import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface StatCard {
   label: string;
@@ -22,21 +25,23 @@ export function StatsPanel({
   approvedCount: number;
   rejectedCount: number;
 }) {
+  const { t } = useLocale();
+
   const cards: StatCard[] = [
     {
-      label: 'Pending',
+      label: t('orders.paymentStatus.pending'),
       value: String(pendingCount),
       icon: AlertCircle,
       iconClassName: 'bg-warning/10 text-warning',
     },
     {
-      label: 'Approved',
+      label: t('orders.paymentStatus.approved'),
       value: String(approvedCount),
       icon: CheckCircle,
       iconClassName: 'bg-success/10 text-success',
     },
     {
-      label: 'Rejected',
+      label: t('orders.paymentStatus.rejected'),
       value: String(rejectedCount),
       icon: XCircle,
       iconClassName: 'bg-destructive/10 text-destructive',

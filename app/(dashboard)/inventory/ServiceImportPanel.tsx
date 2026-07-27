@@ -20,91 +20,95 @@ import type { GridColumn } from '@/components/Grid/types';
 import { parseServiceWorkbookRows, type ServiceParseResult } from './serviceAdapters';
 import * as servicesService from '@/store/services/servicesService';
 import type { ServiceUploadItemPayload } from '@/store/services/servicesService';
-
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 type ParseError = { type: 'missing-columns'; missingColumns: string[] } | { type: 'empty' } | { type: 'unreadable' };
 type Stage = 'idle' | 'invalid' | 'ready';
 
-const STEPS = ['Select file', 'Review', 'Import'] as const;
-
-const ITEM_COLUMNS: GridColumn<ServiceUploadItemPayload>[] = [
-  {
-    key: 'providerName',
-    header: 'Provider Name',
-    cell: (row) => <span className="text-muted-foreground">{row.providerName}</span>,
-  },
-  {
-    key: 'providerAddress',
-    header: 'Address',
-    cell: (row) => <span className="text-muted-foreground">{row.providerAddress || '—'}</span>,
-  },
-  {
-    key: 'providerProvince',
-    header: 'Province',
-    cell: (row) => <span className="text-muted-foreground">{row.providerProvince || '—'}</span>,
-  },
-  {
-    key: 'providerPhone',
-    header: 'Phone',
-    cell: (row) => <span className="text-muted-foreground">{row.providerPhone || '—'}</span>,
-  },
-  {
-    key: 'specialties',
-    header: 'Specialties',
-    cell: (row) => <span className="text-muted-foreground">{row.specialties || '—'}</span>,
-  },
-  {
-    key: 'rating',
-    header: 'Rating',
-    align: 'right',
-    cell: (row) => <span className="text-muted-foreground">{row.rating ?? '—'}</span>,
-  },
-  {
-    key: 'responseTime',
-    header: 'Response Time',
-    cell: (row) => <span className="text-muted-foreground">{row.responseTime || '—'}</span>,
-  },
-  {
-    key: 'serviceName',
-    header: 'Service Name',
-    cell: (row) => <span className="font-medium text-foreground">{row.serviceName}</span>,
-  },
-  {
-    key: 'serviceCategory',
-    header: 'Service Category',
-    cell: (row) => <span className="text-muted-foreground">{row.serviceCategory}</span>,
-  },
-  {
-    key: 'serviceBasePrice',
-    header: 'Service Base Price',
-    align: 'right',
-    cell: (row) => <span className="text-foreground">{formatKwanza(row.serviceBasePrice)}</span>,
-  },
-  {
-    key: 'serviceDurationH',
-    header: 'Service Duration H',
-    align: 'right',
-    cell: (row) => <span className="text-foreground">{row.serviceDurationH}</span>,
-  },
-  {
-    key: 'availableAtHome',
-    header: 'Available At Home',
-    align: 'center',
-    cell: (row) => <span className="text-foreground">{row.availableAtHome ? 'Yes' : 'No'}</span>,
-  },
-  {
-    key: 'baseTravelFee',
-    header: 'Base Travel Fee',
-    align: 'right',
-    cell: (row) => <span className="text-muted-foreground">{row.baseTravelFee != null ? formatKwanza(row.baseTravelFee) : '—'}</span>,
-  },
-  {
-    key: 'logisticsFeeNotes',
-    header: 'Logistics Fee Notes',
-    cellClassName: 'max-w-xs',
-    cell: (row) => <span className="text-muted-foreground">{row.logisticsFeeNotes || '—'}</span>,
-  },
-];
+/**
+ * Builds the review-grid column defs for the parsed import rows, translating
+ * each header through the given `t()` function.
+ */
+function buildItemColumns(t: (path: string) => string): GridColumn<ServiceUploadItemPayload>[] {
+  return [
+    {
+      key: 'providerName',
+      header: t('inventory.services.columns.providerName'),
+      cell: (row) => <span className="text-muted-foreground">{row.providerName}</span>,
+    },
+    {
+      key: 'providerAddress',
+      header: t('inventory.services.columns.address'),
+      cell: (row) => <span className="text-muted-foreground">{row.providerAddress || '—'}</span>,
+    },
+    {
+      key: 'providerProvince',
+      header: t('inventory.services.columns.province'),
+      cell: (row) => <span className="text-muted-foreground">{row.providerProvince || '—'}</span>,
+    },
+    {
+      key: 'providerPhone',
+      header: t('inventory.services.columns.phone'),
+      cell: (row) => <span className="text-muted-foreground">{row.providerPhone || '—'}</span>,
+    },
+    {
+      key: 'specialties',
+      header: t('inventory.services.columns.specialties'),
+      cell: (row) => <span className="text-muted-foreground">{row.specialties || '—'}</span>,
+    },
+    {
+      key: 'rating',
+      header: t('inventory.services.columns.rating'),
+      align: 'right',
+      cell: (row) => <span className="text-muted-foreground">{row.rating ?? '—'}</span>,
+    },
+    {
+      key: 'responseTime',
+      header: t('inventory.services.columns.responseTime'),
+      cell: (row) => <span className="text-muted-foreground">{row.responseTime || '—'}</span>,
+    },
+    {
+      key: 'serviceName',
+      header: t('inventory.services.columns.serviceName'),
+      cell: (row) => <span className="font-medium text-foreground">{row.serviceName}</span>,
+    },
+    {
+      key: 'serviceCategory',
+      header: t('inventory.services.columns.serviceCategory'),
+      cell: (row) => <span className="text-muted-foreground">{row.serviceCategory}</span>,
+    },
+    {
+      key: 'serviceBasePrice',
+      header: t('inventory.services.columns.serviceBasePrice'),
+      align: 'right',
+      cell: (row) => <span className="text-foreground">{formatKwanza(row.serviceBasePrice)}</span>,
+    },
+    {
+      key: 'serviceDurationH',
+      header: t('inventory.services.columns.serviceDurationH'),
+      align: 'right',
+      cell: (row) => <span className="text-foreground">{row.serviceDurationH}</span>,
+    },
+    {
+      key: 'availableAtHome',
+      header: t('inventory.services.columns.availableAtHome'),
+      align: 'center',
+      cell: (row) => <span className="text-foreground">{row.availableAtHome ? t('inventory.common.yes') : t('inventory.common.no')}</span>,
+    },
+    {
+      key: 'baseTravelFee',
+      header: t('inventory.services.columns.baseTravelFee'),
+      align: 'right',
+      cell: (row) => <span className="text-muted-foreground">{row.baseTravelFee != null ? formatKwanza(row.baseTravelFee) : '—'}</span>,
+    },
+    {
+      key: 'logisticsFeeNotes',
+      header: t('inventory.services.columns.logisticsFeeNotes'),
+      cellClassName: 'max-w-xs',
+      cell: (row) => <span className="text-muted-foreground">{row.logisticsFeeNotes || '—'}</span>,
+    },
+  ];
+}
 
 /**
  * Slide-over panel that walks the user through importing a services
@@ -113,7 +117,10 @@ const ITEM_COLUMNS: GridColumn<ServiceUploadItemPayload>[] = [
  */
 export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
   const dispatch = useAppDispatch();
+  const { t } = useLocale();
   const { upload } = useAppSelector((state) => state.services);
+  const itemColumns = buildItemColumns(t);
+  const steps = [t('inventory.common.steps.selectFile'), t('inventory.common.steps.review'), t('inventory.common.steps.import')];
 
   const [stage, setStage] = useState<Stage>('idle');
   const [parseError, setParseError] = useState<ParseError | null>(null);
@@ -241,9 +248,9 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
       <div className="flex h-full w-full max-w-lg flex-col bg-background shadow-xl" onClick={(e) => e.stopPropagation()}>
         <div className="flex items-start justify-between gap-4 border-b border-border px-6 py-5">
           <div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">Import Services</h2>
+            <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">{t('inventory.common.importTitle.services')}</h2>
             <ol className="mt-3 flex items-center gap-2">
-              {STEPS.map((label, index) => (
+              {steps.map((label, index) => (
                 <li key={label} className="flex items-center gap-2">
                   <span
                     className={`flex h-5 w-5 items-center justify-center rounded-full text-2xs font-bold ${
@@ -259,7 +266,7 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                   <span className={`hidden text-xs font-semibold sm:inline ${index <= currentStep ? 'text-foreground' : 'text-muted-foreground'}`}>
                     {label}
                   </span>
-                  {index < STEPS.length - 1 && <span className="h-px w-4 bg-border" />}
+                  {index < steps.length - 1 && <span className="h-px w-4 bg-border" />}
                 </li>
               ))}
             </ol>
@@ -267,7 +274,7 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
           <button
             type="button"
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('inventory.common.close')}
             className="shrink-0 rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
@@ -291,10 +298,8 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
               <input ref={inputRef} type="file" accept=".csv,.xlsx,.xls" onChange={handleFileInput} className="hidden" />
               <div className="flex flex-col items-center">
                 <UploadCloud className="mb-3 h-10 w-10 text-muted-foreground" />
-                <p className="text-sm font-bold text-foreground">Drop a CSV or Excel file, or click to browse</p>
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Needs Provider Name, Service Name, Service Category, Service Base Price and Service Duration H columns
-                </p>
+                <p className="text-sm font-bold text-foreground">{t('inventory.common.dropPrompt')}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{t('inventory.services.dropHint')}</p>
                 <button
                   type="button"
                   onClick={(e) => {
@@ -305,7 +310,7 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                   className="mt-4 flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-semibold text-muted-foreground shadow-sm transition-all hover:bg-accent disabled:opacity-60"
                 >
                   {templateDownloading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-                  Download template
+                  {t('inventory.common.downloadTemplate')}
                 </button>
               </div>
             </div>
@@ -317,20 +322,18 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                 <AlertTriangle className="mt-0.5 h-5 w-5 shrink-0 text-destructive" />
                 <div className="flex-1">
                   <p className="text-sm font-bold text-destructive">
-                    {parseError.type === 'missing-columns' && "Couldn't find some required columns"}
-                    {parseError.type === 'empty' && 'No usable rows found'}
-                    {parseError.type === 'unreadable' && "Couldn't read this file"}
+                    {parseError.type === 'missing-columns' && t('inventory.common.missingColumnsTitle')}
+                    {parseError.type === 'empty' && t('inventory.common.emptyTitle')}
+                    {parseError.type === 'unreadable' && t('inventory.common.unreadableTitle')}
                   </p>
                   <p className="mt-1 text-xs text-destructive">
-                    {parseError.type === 'missing-columns' && (
-                      <>
-                        {fileName} is missing: <span className="font-semibold">{parseError.missingColumns.join(', ')}</span>. Add
-                        these columns and try again.
-                      </>
-                    )}
-                    {parseError.type === 'empty' && `${fileName} has columns for every field, but every row was missing a reference or name.`}
-                    {parseError.type === 'unreadable' &&
-                      `${fileName} doesn't look like a valid CSV or Excel file — check the format and try again.`}
+                    {parseError.type === 'missing-columns' &&
+                      t('inventory.common.missingColumnsMessage', {
+                        fileName: fileName ?? '',
+                        columns: parseError.missingColumns.join(', '),
+                      })}
+                    {parseError.type === 'empty' && t('inventory.services.emptyMessage', { fileName: fileName ?? '' })}
+                    {parseError.type === 'unreadable' && t('inventory.common.unreadableMessage', { fileName: fileName ?? '' })}
                   </p>
                 </div>
               </div>
@@ -339,7 +342,7 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                 onClick={reset}
                 className="mt-4 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-bold text-destructive transition-all hover:bg-destructive/10"
               >
-                Try another file
+                {t('inventory.common.tryAnotherFile')}
               </button>
             </div>
           )}
@@ -350,22 +353,22 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                 <div className="rounded-lg border border-success/30 bg-success/10 p-4">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-success" />
-                    <p className="text-sm font-bold text-success">Import complete</p>
+                    <p className="text-sm font-bold text-success">{t('inventory.common.importComplete')}</p>
                   </div>
                   {upload.result && (
                     <div className={`mt-3 grid gap-3 text-center ${upload.result.skipped?.length ? 'grid-cols-3' : 'grid-cols-2'}`}>
                       <div>
                         <p className="text-lg font-bold text-success">{upload.result.inserted}</p>
-                        <p className="text-2xs font-semibold text-success">Added</p>
+                        <p className="text-2xs font-semibold text-success">{t('inventory.common.added')}</p>
                       </div>
                       <div>
                         <p className="text-lg font-bold text-success">{upload.result.updated}</p>
-                        <p className="text-2xs font-semibold text-success">Updated</p>
+                        <p className="text-2xs font-semibold text-success">{t('inventory.common.updated')}</p>
                       </div>
                       {upload.result.skipped && upload.result.skipped.length > 0 && (
                         <div>
                           <p className="text-lg font-bold text-warning">{upload.result.skipped.length}</p>
-                          <p className="text-2xs font-semibold text-warning">Skipped</p>
+                          <p className="text-2xs font-semibold text-warning">{t('inventory.common.skipped')}</p>
                         </div>
                       )}
                     </div>
@@ -381,7 +384,7 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                     type="button"
                     onClick={reset}
                     disabled={upload.status === 'loading'}
-                    aria-label="Remove file"
+                    aria-label={t('inventory.common.removeFile')}
                     className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-accent hover:text-foreground disabled:opacity-40"
                   >
                     <X className="h-4 w-4" />
@@ -390,18 +393,22 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
               )}
 
               <p className="text-xs font-semibold text-muted-foreground">
-                {upload.status === 'succeeded' ? 'Imported items' : 'Ready to import'} · {parseResult.items.length} service
-                {parseResult.items.length === 1 ? '' : 's'}
+                {upload.status === 'succeeded' ? t('inventory.common.importedItems') : t('inventory.common.readyToImport')} ·{' '}
+                {parseResult.items.length}{' '}
+                {parseResult.items.length === 1 ? t('inventory.services.serviceSingular') : t('inventory.services.servicePlural')}
                 {parseResult.skippedCount > 0 && upload.status !== 'succeeded' && (
                   <span className="text-warning">
                     {' '}
-                    · {parseResult.skippedCount} row{parseResult.skippedCount === 1 ? '' : 's'} skipped (missing provider, service name, or category)
+                    ·{' '}
+                    {parseResult.skippedCount === 1
+                      ? t('inventory.services.rowSkippedNoteSingular', { count: parseResult.skippedCount })
+                      : t('inventory.services.rowSkippedNotePlural', { count: parseResult.skippedCount })}
                   </span>
                 )}
               </p>
 
               <Grid
-                columns={ITEM_COLUMNS}
+                columns={itemColumns}
                 rows={parseResult.items}
                 getRowId={(row) => `${row.providerName}-${row.serviceName}`}
                 pageSize={5}
@@ -412,13 +419,15 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-4 w-4 shrink-0 text-warning" />
                     <p className="text-sm font-bold text-warning">
-                      {upload.result.skipped.length} row{upload.result.skipped.length === 1 ? '' : 's'} skipped
+                      {upload.result.skipped.length === 1
+                        ? t('inventory.services.rowSkippedTitleSingular', { count: upload.result.skipped.length })
+                        : t('inventory.services.rowSkippedTitlePlural', { count: upload.result.skipped.length })}
                     </p>
                   </div>
                   <ul className="mt-2 max-h-48 space-y-1.5 overflow-y-auto text-xs text-warning">
                     {upload.result.skipped.map((s) => (
                       <li key={s.row}>
-                        <span className="font-bold">Row {s.row}:</span> {s.reasons.join(' ')}
+                        <span className="font-bold">{t('inventory.common.rowLabel', { row: s.row })}</span> {s.reasons.join(' ')}
                       </li>
                     ))}
                   </ul>
@@ -438,7 +447,7 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                   onClick={reset}
                   className="w-full rounded-lg bg-primary py-2.5 text-sm font-bold text-primary-foreground shadow-sm transition-all hover:opacity-90"
                 >
-                  Import another file
+                  {t('inventory.common.importAnotherFile')}
                 </button>
               ) : (
                 <button
@@ -450,10 +459,10 @@ export function ServiceImportPanel({ onClose }: { onClose: () => void }) {
                   {upload.status === 'loading' ? (
                     <>
                       <Loader2 className="h-4 w-4 animate-spin" />
-                      Importing {parseResult.items.length} services…
+                      {t('inventory.services.importingServices', { count: parseResult.items.length })}
                     </>
                   ) : (
-                    `Import ${parseResult.items.length} services`
+                    t('inventory.services.importButtonCount', { count: parseResult.items.length })
                   )}
                 </button>
               )}

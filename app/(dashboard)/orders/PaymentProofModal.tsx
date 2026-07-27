@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Check, Loader2, TriangleAlert, X } from 'lucide-react';
 import { getPaymentProof } from '@/store/orders/ordersService';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 /**
  * Modal that fetches and displays an order's uploaded payment proof (image or
@@ -24,6 +25,7 @@ export function PaymentProofModal({
   onApprove: (number: string) => void;
   onReject: (number: string) => void;
 }) {
+  const { t } = useLocale();
   const [objectUrl, setObjectUrl] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,14 +40,14 @@ export function PaymentProofModal({
         setObjectUrl(url);
       })
       .catch(() => {
-        if (!cancelled) setError('Could not load the payment proof.');
+        if (!cancelled) setError(t('orders.proof.loadError'));
       });
 
     return () => {
       cancelled = true;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [number]);
+  }, [number, t]);
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-foreground/60 p-4" onClick={onClose}>
@@ -54,10 +56,10 @@ export function PaymentProofModal({
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
-          <h2 className="text-sm font-bold text-foreground">Payment Proof — Order #{number}</h2>
+          <h2 className="text-sm font-bold text-foreground">{t('orders.proof.title', { number })}</h2>
           <button
             onClick={onClose}
-            aria-label="Close"
+            aria-label={t('orders.proof.close')}
             className="rounded-lg p-1.5 text-muted-foreground transition-all hover:bg-accent"
           >
             <X className="h-4 w-4" />
@@ -73,9 +75,9 @@ export function PaymentProofModal({
           ) : !objectUrl ? (
             <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
           ) : mediaType === 'document' ? (
-            <iframe src={objectUrl} title="Payment proof PDF" className="h-[65vh] w-full rounded-lg border border-border" />
+            <iframe src={objectUrl} title={t('orders.proof.pdfTitle')} className="h-[65vh] w-full rounded-lg border border-border" />
           ) : (
-            <img src={objectUrl} alt="Payment proof" className="max-h-[65vh] w-full rounded-lg object-contain" />
+            <img src={objectUrl} alt={t('orders.proof.imageAlt')} className="max-h-[65vh] w-full rounded-lg object-contain" />
           )}
         </div>
 
@@ -86,14 +88,14 @@ export function PaymentProofModal({
               className="flex items-center gap-1.5 rounded-lg border border-destructive/30 px-3 py-1.5 text-xs font-semibold text-destructive transition-all hover:bg-destructive/10"
             >
               <X className="h-4 w-4" />
-              Reject
+              {t('orders.proof.reject')}
             </button>
             <button
               onClick={() => onApprove(number)}
               className="flex items-center gap-1.5 rounded-lg bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground shadow-sm transition-all hover:bg-success/90"
             >
               <Check className="h-4 w-4" />
-              Approve
+              {t('orders.proof.approve')}
             </button>
           </div>
         )}

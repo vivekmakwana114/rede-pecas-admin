@@ -3,6 +3,7 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import type { GridColumn, SortDirection } from './types';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const DEFAULT_PAGE_SIZE = 10;
 
@@ -15,7 +16,7 @@ export function Grid<T>({
   columns,
   rows,
   getRowId,
-  emptyMessage = 'No records found.',
+  emptyMessage,
   rowClassName,
   pageSize = DEFAULT_PAGE_SIZE,
 }: {
@@ -26,6 +27,7 @@ export function Grid<T>({
   rowClassName?: (row: T) => string | undefined;
   pageSize?: number;
 }) {
+  const { t } = useLocale();
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [page, setPage] = useState(1);
@@ -110,7 +112,7 @@ export function Grid<T>({
             {pageRows.length === 0 ? (
               <tr>
                 <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
-                  {emptyMessage}
+                  {emptyMessage ?? t('grid.noRecords')}
                 </td>
               </tr>
             ) : (
@@ -136,8 +138,11 @@ export function Grid<T>({
       {sortedRows.length > 0 && (
         <div className="flex items-center justify-between border-t border-border/80 px-4 py-3">
           <p className="text-xs font-medium text-muted-foreground">
-            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedRows.length)} of{' '}
-            {sortedRows.length}
+            {t('grid.showing', {
+              from: (currentPage - 1) * pageSize + 1,
+              to: Math.min(currentPage * pageSize, sortedRows.length),
+              total: sortedRows.length,
+            })}
           </p>
           <div className="flex items-center gap-1">
             <button
@@ -145,19 +150,19 @@ export function Grid<T>({
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
               className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"
-              aria-label="Previous page"
+              aria-label={t('grid.previousPage')}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
             <span className="px-2 text-xs font-semibold text-muted-foreground">
-              Page {currentPage} of {pageCount}
+              {t('grid.page', { current: currentPage, total: pageCount })}
             </span>
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
               disabled={currentPage === pageCount}
               className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"
-              aria-label="Next page"
+              aria-label={t('grid.nextPage')}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
