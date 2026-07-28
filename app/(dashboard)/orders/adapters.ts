@@ -45,5 +45,6 @@ export function toOrderRow(item: OrderItem, status: OrderStatus): OrderRow {
     verifying: Boolean(item.verifying),
     hasProof: Boolean(item.has_proof),
     proofMediaType: item.payment_proof_media_type,
+    items: item.items ?? null,
   };
 }

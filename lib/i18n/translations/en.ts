@@ -123,10 +123,13 @@ export const en = {
       actions: 'Actions',
     },
     qty: 'Qty: {qty}',
+    itemsCount: '{count} items',
     markUnavailable: 'Mark Unavailable',
     confirmStock: 'Confirm Stock',
     confirmStockAria: 'Confirm stock for order {number}',
     markUnavailableAria: 'Mark order {number} stock-unavailable',
+    reviewItems: 'Review Items',
+    reviewItemsAria: 'Review items for order {number}',
     verifying: 'Verifying…',
     viewProofAria: 'View payment proof for order {number}',
     viewProof: 'View Proof',
@@ -199,6 +202,14 @@ export const en = {
       imageAlt: 'Payment proof',
       reject: 'Reject',
       approve: 'Approve',
+    },
+    stockConfirmationModal: {
+      title: 'Confirm Stock — Order #{number}',
+      close: 'Close',
+      instructions:
+        'Check off which items are in stock. Unchecked items will go through an alternative-search flow with the customer.',
+      itemAria: 'Mark {name} available',
+      submit: 'Confirm Selection',
     },
   },
   profile: {

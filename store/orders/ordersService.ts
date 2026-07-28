@@ -37,6 +37,15 @@ export const confirmOrderStock = (number: string, available: boolean) => {
 };
 
 /**
+ * Confirms whether stock is available for each line item of a multi-product
+ * "basket" order — the same endpoint as `confirmOrderStock`, just with an
+ * `items` body instead of a single `available` flag.
+ */
+export const confirmOrderStockItems = (number: string, items: { itemId: number; available: boolean }[]) => {
+  return api.post(`/admin/orders/${encodeURIComponent(number)}/confirm/stock`, { items });
+};
+
+/**
  * Downloads the customer's uploaded payment-proof file for an order as a blob.
  */
 export const getPaymentProof = (number: string) => {

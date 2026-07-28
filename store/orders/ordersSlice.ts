@@ -4,6 +4,38 @@ import * as ordersService from './ordersService';
 
 export type OrderStatus = 'pending' | 'approved' | 'rejected' | 'stockConfirmation';
 
+// A multi-product "basket" order (customer asked for several parts in one
+// WhatsApp message) carries its line items here instead of the single
+// part/price fields above, which stay null/absent for these orders — see
+// rede-pecas-api's db/schema.sql orders.items column.
+export interface RawOrderItemLine {
+  itemId: number;
+  productId: number;
+  productName: string;
+  reference: string;
+  supplierId: number;
+  supplierName: string;
+  quantity: number;
+  unitPrice: number | string;
+  serviceName: string | null;
+  servicePrice: number | string | null;
+  availabilityStatus: 'pending' | 'available' | 'unavailable' | 'declined';
+}
+
+export interface OrderItemLine {
+  itemId: number;
+  productId: number;
+  productName: string;
+  reference: string;
+  supplierId: number;
+  supplierName: string;
+  quantity: number;
+  unitPrice: number;
+  serviceName: string | null;
+  servicePrice: number | null;
+  availabilityStatus: 'pending' | 'available' | 'unavailable' | 'declined';
+}
+
 export interface RawOrderItem {
   number: string;
   customer: string;
@@ -20,6 +52,7 @@ export interface RawOrderItem {
   service_price?: string | number | null;
   verifying?: boolean;
   reviewable?: boolean;
+  items?: RawOrderItemLine[] | null;
 }
 
 export interface OrderItem {
@@ -38,6 +71,7 @@ export interface OrderItem {
   service_price?: number | null;
   verifying?: boolean;
   reviewable?: boolean;
+  items?: OrderItemLine[] | null;
 }
 
 interface OrdersResponseData {
@@ -91,6 +125,18 @@ const initialState: OrdersState = {
 };
 
 /**
+ * Maps a raw line item to the UI's OrderItemLine shape, coercing
+ * unitPrice/servicePrice to numbers (or null when absent).
+ */
+function toOrderItemLine(raw: RawOrderItemLine): OrderItemLine {
+  return {
+    ...raw,
+    unitPrice: Number(raw.unitPrice) || 0,
+    servicePrice: raw.servicePrice != null ? Number(raw.servicePrice) : null,
+  };
+}
+
+/**
  * Maps a raw order payload to the UI's OrderItem shape, coercing
  * price/quantity/service_price to numbers (or null when absent).
  */
@@ -100,6 +146,7 @@ function toOrderItem(raw: RawOrderItem): OrderItem {
     price: Number(raw.price) || 0,
     quantity: raw.quantity ?? 0,
     service_price: raw.service_price != null ? Number(raw.service_price) : null,
+    items: raw.items ? raw.items.map(toOrderItemLine) : null,
   };
 }
 
@@ -176,6 +223,28 @@ export const confirmOrderStock = createAsyncThunk(
       return rejectWithValue(
         extractErrorMessage(err, available ? 'Failed to confirm stock.' : 'Failed to mark stock unavailable.')
       );
+    }
+  }
+);
+
+/**
+ * Confirms or denies stock availability per line item for a multi-product
+ * "basket" order via the API and returns its order number so the caller can
+ * refresh the affected list — the multi-item counterpart to
+ * `confirmOrderStock` above, used when an order has line items instead of a
+ * single part.
+ */
+export const confirmOrderStockItems = createAsyncThunk(
+  'orders/confirmOrderStockItems',
+  async (
+    { number, items }: { number: string; items: { itemId: number; available: boolean }[] },
+    { rejectWithValue }
+  ) => {
+    try {
+      await ordersService.confirmOrderStockItems(number, items);
+      return number;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to confirm stock for the selected items.'));
     }
   }
 );
