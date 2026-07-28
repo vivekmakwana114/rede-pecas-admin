@@ -125,10 +125,13 @@ export const pt: Dictionary = {
       actions: 'Ações',
     },
     qty: 'Qtd: {qty}',
+    itemsCount: '{count} itens',
     markUnavailable: 'Marcar Indisponível',
     confirmStock: 'Confirmar Stock',
     confirmStockAria: 'Confirmar stock para a encomenda {number}',
     markUnavailableAria: 'Marcar encomenda {number} como stock indisponível',
+    reviewItems: 'Rever Itens',
+    reviewItemsAria: 'Rever itens da encomenda {number}',
     verifying: 'A verificar…',
     viewProofAria: 'Ver comprovativo de pagamento da encomenda {number}',
     viewProof: 'Ver Comprovativo',
@@ -201,6 +204,14 @@ export const pt: Dictionary = {
       imageAlt: 'Comprovativo de pagamento',
       reject: 'Rejeitar',
       approve: 'Aprovar',
+    },
+    stockConfirmationModal: {
+      title: 'Confirmar Stock — Encomenda #{number}',
+      close: 'Fechar',
+      instructions:
+        'Marca quais os itens que estão em stock. Os itens não marcados vão passar por um fluxo de procura de alternativas com o cliente.',
+      itemAria: 'Marcar {name} como disponível',
+      submit: 'Confirmar Seleção',
     },
   },
   profile: {

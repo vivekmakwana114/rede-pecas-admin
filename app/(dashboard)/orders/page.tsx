@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Check, Eye, PackageX, Trash2, X } from 'lucide-react';
+import { Check, Eye, ListChecks, PackageX, Trash2, X } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { cancelOrder, confirmOrderStock, fetchOrders, reviewOrder } from '@/store/orders/ordersSlice';
+import { cancelOrder, confirmOrderStock, confirmOrderStockItems, fetchOrders, reviewOrder } from '@/store/orders/ordersSlice';
 import { Toast } from '@/components/dashboard/Toast';
 import { useToast } from '@/components/dashboard/useToast';
 import { Grid } from '@/components/Grid/Grid';
@@ -16,6 +16,7 @@ import { StatsPanel } from './StatsPanel';
 import { OrderFilter } from './OrderFilter';
 import { PaymentProofModal } from './PaymentProofModal';
 import { OrderDetailModal } from './OrderDetailModal';
+import { StockConfirmationModal } from './StockConfirmationModal';
 import { toOrderRow } from './adapters';
 import { STOCK_STATUS_BADGE, STOCK_STATUS_LABEL_KEY } from './stockStatus';
 import type { FilterValue, OrderRow, OrderStatus } from './types';
@@ -68,6 +69,7 @@ export default function OrdersPage() {
 
   const [proofOrder, setProofOrder] = useState<OrderRow | null>(null);
   const [viewOrderNumber, setViewOrderNumber] = useState<string | null>(null);
+  const [stockConfirmationOrder, setStockConfirmationOrder] = useState<OrderRow | null>(null);
   const [confirmDialog, setConfirmDialog] = useState<{
     title: string;
     message: string;
@@ -192,6 +194,23 @@ export default function OrdersPage() {
   };
 
   /**
+   * Dispatches `confirmOrderStockItems` with each line item's availability
+   * for a multi-product "basket" order, showing a result toast and
+   * refreshing the orders list on success. The backend does the rest —
+   * proforma for the available items, customer notified of what's
+   * available/not, alternative-search kicked off for unchecked items.
+   */
+  const confirmStockItems = async (number: string, items: { itemId: number; available: boolean }[]) => {
+    const result = await dispatch(confirmOrderStockItems({ number, items }));
+    if (confirmOrderStockItems.fulfilled.match(result)) {
+      showToast(t('orders.toasts.stockConfirmedSuccess', { number }), 'success');
+      dispatch(fetchOrders(range));
+    } else {
+      showToast(t('orders.toasts.stockConfirmFailure'), 'error');
+    }
+  };
+
+  /**
    * Dispatches `cancelOrder` to hide the order from the admin grid, showing a
    * result toast and refreshing the orders list on success.
    */
@@ -298,6 +317,24 @@ export default function OrdersPage() {
       cell: (row) => {
         if (row.status !== 'stockConfirmation') {
           return <span className="text-xs text-muted-foreground">{t('orders.qty', { qty: row.quantity })}</span>;
+        }
+        if (row.items && row.items.length > 0) {
+          return (
+            <div className="flex flex-col items-center gap-1">
+              <span className="text-2xs text-muted-foreground">
+                {t('orders.itemsCount', { count: row.items.length })}
+              </span>
+              <button
+                onClick={() => setStockConfirmationOrder(row)}
+                aria-label={t('orders.reviewItemsAria', { number: row.number })}
+                title={t('orders.reviewItems')}
+                className="flex items-center gap-1 rounded-lg border border-info/30 px-2 py-1 text-2xs font-semibold text-info transition-all hover:bg-info/10"
+              >
+                <ListChecks className="h-3.5 w-3.5" />
+                {t('orders.reviewItems')}
+              </button>
+            </div>
+          );
         }
         return (
           <div className="flex flex-col items-center gap-1">
@@ -488,6 +525,17 @@ export default function OrdersPage() {
             const row = allRows.find((r) => r.number === viewOrderNumber);
             if (row) setProofOrder(row);
             setViewOrderNumber(null);
+          }}
+        />
+      )}
+
+      {stockConfirmationOrder && (
+        <StockConfirmationModal
+          order={stockConfirmationOrder}
+          onClose={() => setStockConfirmationOrder(null)}
+          onSubmit={(number, items) => {
+            setStockConfirmationOrder(null);
+            confirmStockItems(number, items);
           }}
         />
       )}

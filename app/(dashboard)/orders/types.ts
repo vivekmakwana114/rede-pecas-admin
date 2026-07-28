@@ -1,6 +1,6 @@
-export type { OrderStatus, OrderItem } from '@/store/orders/ordersSlice';
+export type { OrderStatus, OrderItem, OrderItemLine } from '@/store/orders/ordersSlice';
 
-import type { OrderStatus } from '@/store/orders/ordersSlice';
+import type { OrderItemLine, OrderStatus } from '@/store/orders/ordersSlice';
 
 export type FilterValue = OrderStatus | 'all' | 'paymentProof';
 
@@ -22,4 +22,8 @@ export interface OrderRow {
   verifying: boolean;
   hasProof: boolean;
   proofMediaType?: 'image' | 'document' | null;
+  // Multi-product "basket" order line items — null/absent for a legacy
+  // single-product order (the overwhelming majority), populated when the
+  // customer requested several parts in one WhatsApp message.
+  items: OrderItemLine[] | null;
 }
