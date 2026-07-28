@@ -192,7 +192,16 @@ export function ProductsGrid({
       header: t('inventory.products.columns.vehicleMake'),
       sortable: true,
       sortValue: (row) => row.vehicle_make ?? '',
-      cell: (row) => <span className="text-sm text-muted-foreground">{row.vehicle_make || '—'}</span>,
+      cell: (row) => (
+        <span className="text-sm text-muted-foreground">
+          {row.vehicle_make || '—'}
+          {(row.vehicle_fits?.length ?? 0) > 1 && (
+            <span className="ml-1 rounded-full bg-accent px-1.5 py-0.5 text-2xs font-semibold text-muted-foreground">
+              +{row.vehicle_fits!.length - 1}
+            </span>
+          )}
+        </span>
+      ),
     },
     {
       key: 'vehicle_model',

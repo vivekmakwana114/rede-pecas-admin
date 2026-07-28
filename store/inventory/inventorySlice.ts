@@ -2,6 +2,15 @@ import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/tool
 import axios from 'axios';
 import * as inventoryService from './inventoryService';
 
+export interface VehicleFit {
+  make: string;
+  model: string | null;
+  year_start: number | null;
+  year_end: number | null;
+  engine: string | null;
+  engine_number: string | null;
+}
+
 export interface Product {
   id: number;
   reference: string;
@@ -33,6 +42,10 @@ export interface Product {
   interval_km?: number | null;
   image_url?: string | null;
   active?: boolean;
+  // Every compatible-vehicle fit on file for this product — vehicle_make/
+  // model/year_start/year_end above are only the first of these (the one the
+  // edit form edits); this is the full list, for display only.
+  vehicle_fits?: VehicleFit[] | null;
 }
 
 export interface ProductUpdateFields {

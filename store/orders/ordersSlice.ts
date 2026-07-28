@@ -128,7 +128,7 @@ const initialState: OrdersState = {
  * Maps a raw line item to the UI's OrderItemLine shape, coercing
  * unitPrice/servicePrice to numbers (or null when absent).
  */
-function toOrderItemLine(raw: RawOrderItemLine): OrderItemLine {
+export function toOrderItemLine(raw: RawOrderItemLine): OrderItemLine {
   return {
     ...raw,
     unitPrice: Number(raw.unitPrice) || 0,

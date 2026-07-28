@@ -218,6 +218,10 @@ export function ProductDetailModal({
   const isLubricant = product.category === 'lubricant' || !!(product.viscosity || product.engine_type || product.volume_liters);
   const vehicleFit = [product.vehicle_make, product.vehicle_model].filter(Boolean).join(' ');
   const yearRange = [product.year_start, product.year_end].filter((y) => y != null).join('–');
+  // vehicle_fits[0] is the same fit already shown above (it's what the
+  // flat vehicle_make/model/... fields and the edit form reflect) — only
+  // list the rest here, and only in the read view.
+  const otherFits = !editing ? (product.vehicle_fits ?? []).slice(1) : [];
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-foreground/60" onClick={onClose}>
@@ -557,6 +561,25 @@ export function ProductDetailModal({
                 <InfoRow label={t('inventory.productDetail.engine')} value={product.engine || '—'} />
                 <InfoRow label={t('inventory.productDetail.engineNumber')} value={product.engine_number || '—'} />
               </Section>
+
+              {otherFits.length > 0 && (
+                <Section title={t('inventory.productDetail.sectionOtherVehicleFits', { count: otherFits.length })}>
+                  <ul className="space-y-2">
+                    {otherFits.map((fit, i) => {
+                      const fitMakeModel = [fit.make, fit.model].filter(Boolean).join(' ');
+                      const fitYearRange = [fit.year_start, fit.year_end].filter((y) => y != null).join('–');
+                      return (
+                        <li key={i} className="rounded-lg border border-border p-3 text-sm">
+                          <div className="font-semibold text-foreground">{fitMakeModel || '—'}</div>
+                          <div className="text-2xs text-muted-foreground">
+                            {[fitYearRange, fit.engine].filter(Boolean).join(' · ') || '—'}
+                          </div>
+                        </li>
+                      );
+                    })}
+                  </ul>
+                </Section>
+              )}
 
               {isLubricant && (
                 <Section title={t('inventory.productDetail.sectionLubricantSpecs')}>

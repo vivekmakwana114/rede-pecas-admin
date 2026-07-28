@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { Loader2, TriangleAlert, X } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { getOrderDetail } from '@/store/orders/ordersService';
+import { toOrderItemLine, type RawOrderItemLine, type OrderItemLine } from '@/store/orders/ordersSlice';
 import { Section, InfoRow } from '@/components/DetailPanel';
 import { getRawStatusLabel } from './orderStatusLabels';
 import { useLocale } from '@/lib/i18n/LocaleContext';
@@ -11,11 +12,11 @@ import { useLocale } from '@/lib/i18n/LocaleContext';
 interface OrderDetail {
   number: string;
   customer_phone: string;
-  product_name: string;
-  reference: string;
-  supplier_name: string;
+  product_name: string | null;
+  reference: string | null;
+  supplier_name: string | null;
   quantity: number;
-  unit_price: string | number;
+  unit_price: string | number | null;
   status: string;
   payment_method: string | null;
   customer_engine_number: string | null;
@@ -25,7 +26,18 @@ interface OrderDetail {
   created_at: string;
   approved_at: string | null;
   updated_at: string;
+  // Multi-product "basket" order line items — present instead of the flat
+  // product_name/reference/supplier_name/unit_price fields above, which stay
+  // null for these orders (see rede-pecas-api's orders.items column).
+  items: RawOrderItemLine[] | null;
 }
+
+const ITEM_STATUS_STYLES: Record<OrderItemLine['availabilityStatus'], string> = {
+  pending: 'bg-accent text-muted-foreground',
+  available: 'bg-success/15 text-success',
+  unavailable: 'bg-destructive/15 text-destructive',
+  declined: 'bg-muted text-muted-foreground',
+};
 
 /**
  * Converts a snake_case status/method value into a human-readable, title-cased
@@ -70,7 +82,15 @@ export function OrderDetailModal({
     };
   }, [orderNumber, t]);
 
-  const total = detail ? Number(detail.unit_price) + Number(detail.service_price || 0) : 0;
+  const items = detail?.items?.map(toOrderItemLine) ?? null;
+  const hasItems = !!items && items.length > 0;
+  const total = !detail
+    ? 0
+    : hasItems
+      ? items!
+          .filter((item) => item.availabilityStatus === 'available')
+          .reduce((sum, item) => sum + item.unitPrice + (item.servicePrice ?? 0), 0)
+      : Number(detail.unit_price) + Number(detail.service_price || 0);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-foreground/60" onClick={onClose}>
@@ -112,24 +132,59 @@ export function OrderDetailModal({
                 <InfoRow label={t('orders.detail.paymentMethod')} value={formatLabel(detail.payment_method)} />
               </Section>
 
-              <Section title={t('orders.detail.sectionPart')}>
-                <InfoRow label={t('orders.detail.part')} value={detail.product_name} />
-                <InfoRow label={t('orders.detail.reference')} value={detail.reference || '—'} />
-                <InfoRow label={t('orders.detail.supplier')} value={detail.supplier_name || '—'} />
-                <InfoRow label={t('orders.detail.quantity')} value={String(detail.quantity)} />
-                <InfoRow label={t('orders.detail.partPrice')} value={formatKwanza(Number(detail.unit_price))} />
-                {detail.service_name && (
-                  <InfoRow
-                    label={t('orders.detail.service')}
-                    value={
-                      detail.service_price != null
-                        ? `${detail.service_name} · ${formatKwanza(Number(detail.service_price))}`
-                        : detail.service_name
-                    }
-                  />
-                )}
-                <InfoRow label={t('orders.detail.total')} value={formatKwanza(total)} />
-              </Section>
+              {hasItems ? (
+                <Section title={t('orders.detail.sectionItems', { count: items!.length })}>
+                  <ul className="space-y-2">
+                    {items!.map((item) => (
+                      <li key={item.itemId} className="rounded-lg border border-border p-3">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="min-w-0">
+                            <div className="truncate text-sm font-semibold text-foreground">{item.productName}</div>
+                            <div className="truncate text-2xs text-muted-foreground">{item.reference || '—'} · {item.supplierName || '—'}</div>
+                            {item.serviceName && (
+                              <div className="truncate text-2xs text-muted-foreground">
+                                + {item.serviceName}
+                                {item.servicePrice != null ? ` · ${formatKwanza(item.servicePrice)}` : ''}
+                              </div>
+                            )}
+                            <div className="text-2xs text-muted-foreground">{t('orders.qty', { qty: item.quantity })}</div>
+                          </div>
+                          <div className="shrink-0 text-right">
+                            <div className="text-sm font-semibold text-foreground">
+                              {formatKwanza(item.unitPrice + (item.servicePrice ?? 0))}
+                            </div>
+                            <span
+                              className={`mt-1 inline-block rounded-full px-2 py-0.5 text-2xs font-semibold ${ITEM_STATUS_STYLES[item.availabilityStatus]}`}
+                            >
+                              {t(`orders.detail.itemStatus.${item.availabilityStatus}`)}
+                            </span>
+                          </div>
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                  <InfoRow label={t('orders.detail.total')} value={formatKwanza(total)} />
+                </Section>
+              ) : (
+                <Section title={t('orders.detail.sectionPart')}>
+                  <InfoRow label={t('orders.detail.part')} value={detail.product_name || '—'} />
+                  <InfoRow label={t('orders.detail.reference')} value={detail.reference || '—'} />
+                  <InfoRow label={t('orders.detail.supplier')} value={detail.supplier_name || '—'} />
+                  <InfoRow label={t('orders.detail.quantity')} value={String(detail.quantity)} />
+                  <InfoRow label={t('orders.detail.partPrice')} value={formatKwanza(Number(detail.unit_price))} />
+                  {detail.service_name && (
+                    <InfoRow
+                      label={t('orders.detail.service')}
+                      value={
+                        detail.service_price != null
+                          ? `${detail.service_name} · ${formatKwanza(Number(detail.service_price))}`
+                          : detail.service_name
+                      }
+                    />
+                  )}
+                  <InfoRow label={t('orders.detail.total')} value={formatKwanza(total)} />
+                </Section>
+              )}
 
               <Section title={t('orders.detail.sectionVehicle')}>
                 <InfoRow label={t('orders.detail.engineNumber')} value={detail.customer_engine_number || '—'} />
