@@ -6,6 +6,7 @@ type OptionalStringField =
   | 'supplierPhone'
   | 'category'
   | 'subcategory'
+  | 'productType'
   | 'oemReference'
   | 'deliveryTime'
   | 'vehicleMake'
@@ -35,6 +36,7 @@ const OPTIONAL_COLUMN_ALIASES: Record<OptionalField, string[]> = {
   supplierPhone: ['Supplier Phone', 'supplier_phone', 'telefone_fornecedor'],
   category: ['Category', 'category', 'categoria'],
   subcategory: ['Subcategory', 'subcategory', 'subcategoria'],
+  productType: ['Part Type', 'part_type', 'product_type', 'tipo_peca'],
   oemReference: ['OEM Reference', 'oem_reference', 'referencia_oem'],
   deliveryTime: ['Delivery Time', 'delivery_time', 'prazo_entrega'],
   vehicleMake: ['Vehicle Make', 'vehicle_make', 'marca_veiculo'],
@@ -130,6 +132,7 @@ export function parseWorkbookRows(rawRows: Record<string, unknown>[], headerRow:
     const supplierPhone = pickStr(row, 'supplierPhone');
     const category = pickStr(row, 'category');
     const subcategory = pickStr(row, 'subcategory');
+    const productType = pickStr(row, 'productType');
     const oemReference = pickStr(row, 'oemReference');
     const deliveryTime = pickStr(row, 'deliveryTime');
     const vehicleMake = pickStr(row, 'vehicleMake');
@@ -159,6 +162,7 @@ export function parseWorkbookRows(rawRows: Record<string, unknown>[], headerRow:
       ...(supplierPhone ? { supplierPhone } : {}),
       ...(category ? { category } : {}),
       ...(subcategory ? { subcategory } : {}),
+      ...(productType ? { productType } : {}),
       ...(oemReference ? { oemReference } : {}),
       ...(deliveryTime ? { deliveryTime } : {}),
       ...(vehicleMake ? { vehicleMake } : {}),

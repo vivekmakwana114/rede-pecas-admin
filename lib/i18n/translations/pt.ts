@@ -273,6 +273,8 @@ export const pt: Dictionary = {
     deleteCustomer: 'Eliminar cliente',
     columns: {
       customer: 'Cliente',
+      nif: 'NIF',
+      address: 'Endereço',
       vehicles: 'Veículos',
       orders: 'Encomendas',
       totalSpent: 'Total Gasto',
@@ -381,6 +383,7 @@ export const pt: Dictionary = {
         supplier: 'Fornecedor',
         category: 'Categoria',
         subcategory: 'Subcategoria',
+        partType: 'Tipo de Peça',
         reference: 'Referência',
         oemReference: 'Referência OEM',
         brand: 'Marca',

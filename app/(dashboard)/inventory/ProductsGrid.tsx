@@ -136,6 +136,13 @@ export function ProductsGrid({
       cell: (row) => <span className="text-sm text-muted-foreground">{row.subcategory || '—'}</span>,
     },
     {
+      key: 'product_type',
+      header: t('inventory.products.columns.partType'),
+      sortable: true,
+      sortValue: (row) => row.product_type ?? '',
+      cell: (row) => <span className="text-sm text-muted-foreground">{row.product_type || '—'}</span>,
+    },
+    {
       key: 'reference',
       header: t('inventory.products.columns.reference'),
       sortable: true,

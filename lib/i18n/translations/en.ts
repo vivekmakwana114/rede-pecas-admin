@@ -271,6 +271,8 @@ export const en = {
     deleteCustomer: 'Delete customer',
     columns: {
       customer: 'Customer',
+      nif: 'NIF',
+      address: 'Address',
       vehicles: 'Vehicles',
       orders: 'Orders',
       totalSpent: 'Total Spent',
@@ -379,6 +381,7 @@ export const en = {
         supplier: 'Supplier',
         category: 'Category',
         subcategory: 'Subcategory',
+        partType: 'Part Type',
         reference: 'Reference',
         oemReference: 'OEM Reference',
         brand: 'Brand',

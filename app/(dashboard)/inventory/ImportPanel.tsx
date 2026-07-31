@@ -48,6 +48,11 @@ function buildItemColumns(t: (path: string) => string): GridColumn<UploadItemPay
       cell: (row) => <span className="text-muted-foreground">{row.subcategory || '—'}</span>,
     },
     {
+      key: 'productType',
+      header: t('inventory.products.columns.partType'),
+      cell: (row) => <span className="text-muted-foreground">{row.productType || '—'}</span>,
+    },
+    {
       key: 'reference',
       header: t('inventory.products.columns.reference'),
       cell: (row) => <span className="font-mono text-sm font-semibold text-foreground">{row.reference}</span>,

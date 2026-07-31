@@ -84,6 +84,18 @@ export default function CustomersPage() {
       ),
     },
     {
+      key: 'nif',
+      header: t('customers.columns.nif'),
+      sortable: true,
+      sortValue: (row) => row.nif ?? '',
+      cell: (row) => <span className="font-mono text-xs text-foreground">{row.nif || '—'}</span>,
+    },
+    {
+      key: 'address',
+      header: t('customers.columns.address'),
+      cell: (row) => <span className="text-xs text-foreground">{row.address || '—'}</span>,
+    },
+    {
       key: 'vehicle',
       header: t('customers.columns.vehicles'),
       sortable: true,

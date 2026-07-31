@@ -21,19 +21,6 @@ function fieldInputClassName(hasError?: string) {
 
 const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
 
-const SUBCATEGORY_OPTIONS = [
-  'Engine Oil',
-  'Filtration',
-  'Brakes',
-  'Suspension',
-  'Steering',
-  'Transmission',
-  'Mechanical',
-  'Engine',
-];
-
-const PART_TYPE_OPTIONS = ['OEM', 'Aftermarket', 'New', 'Second Hand'];
-
 type FormState = {
   name: string;
   reference: string;
@@ -323,47 +310,28 @@ export function ProductDetailModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelClassName}>{t('inventory.productDetail.category')}</label>
-                    <select
+                    <input
                       className={fieldInputClassName()}
                       value={form.category}
                       onChange={(e) => updateField('category', e.target.value)}
-                    >
-                      <option value="part">{t('inventory.productDetail.categoryPart')}</option>
-                      <option value="lubricant">{t('inventory.productDetail.categoryLubricant')}</option>
-                    </select>
+                    />
                   </div>
                   <div>
                     <label className={labelClassName}>{t('inventory.productDetail.subcategory')}</label>
-                    <select
+                    <input
                       className={fieldInputClassName()}
                       value={form.subcategory}
                       onChange={(e) => updateField('subcategory', e.target.value)}
-                    >
-                      <option value="" disabled>
-                        {t('inventory.common.selectPlaceholder')}
-                      </option>
-                      {SUBCATEGORY_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 </div>
                 <div>
                   <label className={labelClassName}>{t('inventory.productDetail.partType')}</label>
-                  <select
+                  <input
                     className={fieldInputClassName()}
                     value={form.productType}
                     onChange={(e) => updateField('productType', e.target.value)}
-                  >
-                    <option value="">{t('inventory.common.selectPlaceholder')}</option>
-                    {PART_TYPE_OPTIONS.map((opt) => (
-                      <option key={opt} value={opt}>
-                        {opt}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
                 <div>
                   <label className={labelClassName}>{t('inventory.productDetail.brand')}</label>
