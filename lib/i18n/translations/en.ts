@@ -130,6 +130,7 @@ export const en = {
     markUnavailableAria: 'Mark order {number} stock-unavailable',
     reviewItems: 'Review Items',
     reviewItemsAria: 'Review items for order {number}',
+    waitingOnCustomer: 'Waiting on customer',
     verifying: 'Verifying…',
     viewProofAria: 'View payment proof for order {number}',
     viewProof: 'View Proof',
