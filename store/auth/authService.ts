@@ -29,6 +29,13 @@ export const getProfile = () => {
 };
 
 /**
+ * Updates the currently authenticated admin's name and/or email.
+ */
+export const updateProfile = (fields: { name?: string; email?: string }) => {
+  return api.patch('/admin/profile', fields);
+};
+
+/**
  * Requests a password-reset code be sent to the given admin phone number.
  */
 export const forgotPassword = (phone: string) => {

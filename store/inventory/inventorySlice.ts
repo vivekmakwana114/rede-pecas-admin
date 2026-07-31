@@ -28,6 +28,9 @@ export interface Product {
   category?: string;
   subcategory?: string;
   service_category?: string;
+  // OEM/Aftermarket/New/Second Hand — free text, asked once at import/edit
+  // time. Null for catalog rows created before this field existed.
+  product_type?: string | null;
   vehicle_make?: string;
   vehicle_model?: string | null;
   year_start?: number | null;
@@ -59,6 +62,7 @@ export interface ProductUpdateFields {
   supplierPhone?: string | null;
   category?: string;
   subcategory?: string;
+  product_type?: string | null;
   vehicle_make?: string;
   vehicle_model?: string | null;
   year_start?: number | null;

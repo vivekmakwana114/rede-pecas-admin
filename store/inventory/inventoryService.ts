@@ -10,6 +10,7 @@ export interface UploadItemPayload {
   supplierPhone?: string;
   category?: string;
   subcategory?: string;
+  productType?: string;
   oemReference?: string;
   deliveryTime?: string;
   vehicleMake?: string;

@@ -21,17 +21,6 @@ function fieldInputClassName(hasError?: string) {
 
 const labelClassName = 'mb-1 block text-xs font-semibold text-muted-foreground';
 
-const SUBCATEGORY_OPTIONS = [
-  'Engine Oil',
-  'Filtration',
-  'Brakes',
-  'Suspension',
-  'Steering',
-  'Transmission',
-  'Mechanical',
-  'Engine',
-];
-
 type FormState = {
   name: string;
   reference: string;
@@ -42,6 +31,7 @@ type FormState = {
   supplierPhone: string;
   category: string;
   subcategory: string;
+  productType: string;
   vehicleMake: string;
   vehicleModel: string;
   yearStart: string;
@@ -130,6 +120,7 @@ export function ProductDetailModal({
     supplierPhone: product.supplier_phone ?? '',
     category: product.category ?? 'part',
     subcategory: product.subcategory ?? '',
+    productType: product.product_type ?? '',
     vehicleMake: product.vehicle_make ?? '',
     vehicleModel: product.vehicle_model ?? '',
     yearStart: product.year_start != null ? String(product.year_start) : '',
@@ -185,6 +176,7 @@ export function ProductDetailModal({
       supplierPhone: form.supplierPhone || null,
       category: form.category || undefined,
       subcategory: form.subcategory || undefined,
+      product_type: form.productType || null,
       vehicle_make: form.vehicleMake || undefined,
       vehicle_model: form.vehicleModel || null,
       year_start: form.yearStart.trim() ? Number(form.yearStart) : null,
@@ -318,32 +310,28 @@ export function ProductDetailModal({
                 <div className="grid grid-cols-2 gap-3">
                   <div>
                     <label className={labelClassName}>{t('inventory.productDetail.category')}</label>
-                    <select
+                    <input
                       className={fieldInputClassName()}
                       value={form.category}
                       onChange={(e) => updateField('category', e.target.value)}
-                    >
-                      <option value="part">{t('inventory.productDetail.categoryPart')}</option>
-                      <option value="lubricant">{t('inventory.productDetail.categoryLubricant')}</option>
-                    </select>
+                    />
                   </div>
                   <div>
                     <label className={labelClassName}>{t('inventory.productDetail.subcategory')}</label>
-                    <select
+                    <input
                       className={fieldInputClassName()}
                       value={form.subcategory}
                       onChange={(e) => updateField('subcategory', e.target.value)}
-                    >
-                      <option value="" disabled>
-                        {t('inventory.common.selectPlaceholder')}
-                      </option>
-                      {SUBCATEGORY_OPTIONS.map((opt) => (
-                        <option key={opt} value={opt}>
-                          {opt}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
+                </div>
+                <div>
+                  <label className={labelClassName}>{t('inventory.productDetail.partType')}</label>
+                  <input
+                    className={fieldInputClassName()}
+                    value={form.productType}
+                    onChange={(e) => updateField('productType', e.target.value)}
+                  />
                 </div>
                 <div>
                   <label className={labelClassName}>{t('inventory.productDetail.brand')}</label>
@@ -551,6 +539,7 @@ export function ProductDetailModal({
                 <InfoRow label={t('inventory.productDetail.category')} value={product.category || '—'} />
                 <InfoRow label={t('inventory.productDetail.subcategory')} value={product.subcategory || '—'} />
                 <InfoRow label={t('inventory.productDetail.serviceCategory')} value={product.service_category || '—'} />
+                <InfoRow label={t('inventory.productDetail.partType')} value={product.product_type || '—'} />
                 <InfoRow label={t('inventory.productDetail.brand')} value={product.brand || '—'} />
                 <InfoRow label={t('inventory.productDetail.oemReference')} value={product.oem_reference || '—'} />
               </Section>

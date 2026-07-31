@@ -318,11 +318,12 @@ export default function OrdersPage() {
         if (row.status !== 'stockConfirmation') {
           return <span className="text-xs text-muted-foreground">{t('orders.qty', { qty: row.quantity })}</span>;
         }
-        if (row.items && row.items.length > 0) {
+        const pendingItemsCount = row.items?.filter((item) => item.availabilityStatus === 'pending').length ?? 0;
+        if (pendingItemsCount > 0) {
           return (
             <div className="flex flex-col items-center gap-1">
               <span className="text-2xs text-muted-foreground">
-                {t('orders.itemsCount', { count: row.items.length })}
+                {t('orders.itemsCount', { count: pendingItemsCount })}
               </span>
               <button
                 onClick={() => setStockConfirmationOrder(row)}

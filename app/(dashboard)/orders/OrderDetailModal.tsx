@@ -19,6 +19,10 @@ interface OrderDetail {
   unit_price: string | number | null;
   status: string;
   payment_method: string | null;
+  // One choice (OEM/Aftermarket/New/Second Hand) per order, asked once and
+  // applied to every part in it — not per line item, so it belongs in the
+  // order-level section below rather than inside the per-item list.
+  part_type: string | null;
   customer_engine_number: string | null;
   service_name: string | null;
   service_price: string | number | null;
@@ -130,6 +134,7 @@ export function OrderDetailModal({
               <Section title={t('orders.detail.sectionOrder')}>
                 <InfoRow label={t('orders.detail.customer')} value={detail.customer_phone} />
                 <InfoRow label={t('orders.detail.paymentMethod')} value={formatLabel(detail.payment_method)} />
+                <InfoRow label={t('orders.detail.partType')} value={formatLabel(detail.part_type)} />
               </Section>
 
               {hasItems ? (
