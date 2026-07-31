@@ -21,6 +21,11 @@ interface RawCustomer {
   name: string | null;
   nif: string | null;
   address: string | null;
+  // Captured per-order (not at registration) via the deferred order-profile
+  // flow — holds the customer's last-known value, overwritten on each new
+  // order. View-only: the backend's PATCH /customers/:phone doesn't accept
+  // this field, so there's no edit path for it here either.
+  customer_type: 'individual' | 'company' | null;
   email: string | null;
   first_contact_at: string;
   orders_count: number;
@@ -34,6 +39,7 @@ export interface Customer {
   phone: string;
   nif: string | null;
   address: string | null;
+  customerType: 'individual' | 'company' | null;
   email: string | null;
   createdAt: string;
   ordersCount: number;
@@ -84,6 +90,7 @@ function toCustomer(raw: RawCustomer): Customer {
     phone: raw.phone,
     nif: raw.nif,
     address: raw.address,
+    customerType: raw.customer_type,
     email: raw.email,
     createdAt: raw.first_contact_at,
     ordersCount: raw.orders_count,

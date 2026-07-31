@@ -32,6 +32,8 @@ const SUBCATEGORY_OPTIONS = [
   'Engine',
 ];
 
+const PART_TYPE_OPTIONS = ['OEM', 'Aftermarket', 'New', 'Second Hand'];
+
 type FormState = {
   name: string;
   reference: string;
@@ -42,6 +44,7 @@ type FormState = {
   supplierPhone: string;
   category: string;
   subcategory: string;
+  productType: string;
   vehicleMake: string;
   vehicleModel: string;
   yearStart: string;
@@ -130,6 +133,7 @@ export function ProductDetailModal({
     supplierPhone: product.supplier_phone ?? '',
     category: product.category ?? 'part',
     subcategory: product.subcategory ?? '',
+    productType: product.product_type ?? '',
     vehicleMake: product.vehicle_make ?? '',
     vehicleModel: product.vehicle_model ?? '',
     yearStart: product.year_start != null ? String(product.year_start) : '',
@@ -185,6 +189,7 @@ export function ProductDetailModal({
       supplierPhone: form.supplierPhone || null,
       category: form.category || undefined,
       subcategory: form.subcategory || undefined,
+      product_type: form.productType || null,
       vehicle_make: form.vehicleMake || undefined,
       vehicle_model: form.vehicleModel || null,
       year_start: form.yearStart.trim() ? Number(form.yearStart) : null,
@@ -344,6 +349,21 @@ export function ProductDetailModal({
                       ))}
                     </select>
                   </div>
+                </div>
+                <div>
+                  <label className={labelClassName}>{t('inventory.productDetail.partType')}</label>
+                  <select
+                    className={fieldInputClassName()}
+                    value={form.productType}
+                    onChange={(e) => updateField('productType', e.target.value)}
+                  >
+                    <option value="">{t('inventory.common.selectPlaceholder')}</option>
+                    {PART_TYPE_OPTIONS.map((opt) => (
+                      <option key={opt} value={opt}>
+                        {opt}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 <div>
                   <label className={labelClassName}>{t('inventory.productDetail.brand')}</label>
@@ -551,6 +571,7 @@ export function ProductDetailModal({
                 <InfoRow label={t('inventory.productDetail.category')} value={product.category || '—'} />
                 <InfoRow label={t('inventory.productDetail.subcategory')} value={product.subcategory || '—'} />
                 <InfoRow label={t('inventory.productDetail.serviceCategory')} value={product.service_category || '—'} />
+                <InfoRow label={t('inventory.productDetail.partType')} value={product.product_type || '—'} />
                 <InfoRow label={t('inventory.productDetail.brand')} value={product.brand || '—'} />
                 <InfoRow label={t('inventory.productDetail.oemReference')} value={product.oem_reference || '—'} />
               </Section>

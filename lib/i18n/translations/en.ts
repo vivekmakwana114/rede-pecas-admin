@@ -178,6 +178,7 @@ export const en = {
       sectionOrder: 'Order',
       customer: 'Customer',
       paymentMethod: 'Payment Method',
+      partType: 'Part Type',
       sectionPart: 'Part',
       sectionItems: 'Items ({count})',
       itemStatus: {
@@ -225,6 +226,16 @@ export const en = {
     administrator: 'Administrator',
     email: 'Email',
     phone: 'Phone',
+    editProfile: {
+      edit: 'Edit',
+      cancel: 'Cancel',
+      save: 'Save',
+      saving: 'Saving…',
+      nameLabel: 'Name',
+      emailLabel: 'Email',
+      successToast: 'Profile updated.',
+      genericError: 'Failed to update the profile.',
+    },
     changePassword: {
       title: 'Change password',
       subtitle: 'Choose a new password for your admin account.',
@@ -272,6 +283,9 @@ export const en = {
       close: 'Close',
       sectionProfile: 'Profile',
       name: 'Name',
+      customerType: 'Customer Type',
+      customerTypeIndividual: 'Individual',
+      customerTypeCompany: 'Company',
       nif: 'NIF',
       address: 'Address',
       email: 'Email',
@@ -412,6 +426,7 @@ export const en = {
       sectionClassification: 'Classification',
       category: 'Category',
       subcategory: 'Subcategory',
+      partType: 'Part Type',
       brand: 'Brand',
       oemReference: 'OEM Reference',
       sectionVehicleFit: 'Vehicle Fit',
@@ -433,7 +448,11 @@ export const en = {
       imageUrl: 'Image URL',
       sectionSupplier: 'Supplier',
       supplierName: 'Name',
-      supplierAddress: 'Address',
+      // Despite the field's name (kept as-is to match the API), this is the
+      // supplier's *province* on the backend — the `suppliers` table has no
+      // street-address column. Unlike serviceDetail.address below (a real
+      // address, on a different table), this must read "Province".
+      supplierAddress: 'Province',
       supplierPhone: 'Phone',
       categoryPart: 'Part',
       categoryLubricant: 'Lubricant',

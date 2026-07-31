@@ -134,7 +134,7 @@ function buildItemColumns(t: (path: string) => string): GridColumn<UploadItemPay
     },
     {
       key: 'supplierAddress',
-      header: t('inventory.serviceDetail.address'),
+      header: t('inventory.productDetail.supplierAddress'),
       cell: (row) => <span className="text-muted-foreground">{row.supplierAddress || '—'}</span>,
     },
     {

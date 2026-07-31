@@ -15,6 +15,13 @@ import type { OrderRow } from './types';
  * vs. not, an alternative-search conversation kicked off for anything left
  * unchecked), so this component only needs to collect and submit the
  * selection.
+ *
+ * Only items still `availabilityStatus === 'pending'` are shown/submitted —
+ * an order can re-enter the stock-confirmation bucket with a mix of
+ * already-resolved items (available/unavailable/declined) and a newly
+ * offered alternative still pending, and re-showing an already-decided item
+ * here (defaulting its checkbox back to checked) would silently resubmit
+ * `available: true` for it, overwriting a prior rejection/decline.
  */
 export function StockConfirmationModal({
   order,
@@ -26,7 +33,7 @@ export function StockConfirmationModal({
   onSubmit: (number: string, items: { itemId: number; available: boolean }[]) => void;
 }) {
   const { t } = useLocale();
-  const items = order.items ?? [];
+  const items = (order.items ?? []).filter((item) => item.availabilityStatus === 'pending');
   const [availability, setAvailability] = useState<Record<number, boolean>>(() =>
     Object.fromEntries(items.map((item) => [item.itemId, true]))
   );

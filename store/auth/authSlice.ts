@@ -1,6 +1,6 @@
 import { createAsyncThunk, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import axios from 'axios';
-import { login, getProfile, logout as logoutRequest } from './authService';
+import { login, getProfile, updateProfile, logout as logoutRequest } from './authService';
 
 export interface AdminProfile {
   id: number;
@@ -73,6 +73,37 @@ export const fetchAdminProfile = createAsyncThunk('auth/fetchAdminProfile', asyn
     return rejectWithValue(extractErrorMessage(err, 'Failed to fetch profile.'));
   }
 });
+
+/**
+ * Updates the current admin's name/email via the API and returns the
+ * refreshed profile for the reducer to store.
+ */
+export const updateAdminProfile = createAsyncThunk(
+  'auth/updateAdminProfile',
+  async (fields: { name?: string; email?: string }, { rejectWithValue }) => {
+    try {
+      const res = await updateProfile(fields);
+      return res.data as ProfileResponsePayload;
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to update the profile.'));
+    }
+  },
+);
+
+/**
+ * Rewrites the persisted admin/tokens pair in whichever storage (local or
+ * session) currently holds it, so an in-place profile edit survives a reload
+ * instead of being overwritten by the stale copy on next app init.
+ */
+function persistAdmin(admin: AdminProfile, tokens: AuthTokens | null): void {
+  if (typeof window === 'undefined') return;
+  const authData = JSON.stringify({ admin, tokens });
+  if (localStorage.getItem('auth')) {
+    localStorage.setItem('auth', authData);
+  } else if (sessionStorage.getItem('auth')) {
+    sessionStorage.setItem('auth', authData);
+  }
+}
 
 /**
  * Logs the admin out by revoking the stored refresh token on the server,
@@ -158,6 +189,11 @@ const authSlice = createSlice({
       /** Updates the stored admin profile once it's freshly fetched. */
       .addCase(fetchAdminProfile.fulfilled, (state, action: PayloadAction<ProfileResponsePayload>) => {
         state.admin = action.payload.data.admin;
+      })
+      /** Stores the freshly-edited admin profile and persists it alongside the existing tokens. */
+      .addCase(updateAdminProfile.fulfilled, (state, action: PayloadAction<ProfileResponsePayload>) => {
+        state.admin = action.payload.data.admin;
+        persistAdmin(state.admin, state.tokens);
       });
   },
 });

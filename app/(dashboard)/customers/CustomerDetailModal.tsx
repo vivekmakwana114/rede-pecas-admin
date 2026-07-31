@@ -153,6 +153,16 @@ export function CustomerDetailModal({
           ) : (
             <div className="space-y-6">
               <Section title={t('customers.detail.sectionProfile')}>
+                <InfoRow
+                  label={t('customers.detail.customerType')}
+                  value={
+                    customer.customerType === 'company'
+                      ? t('customers.detail.customerTypeCompany')
+                      : customer.customerType === 'individual'
+                        ? t('customers.detail.customerTypeIndividual')
+                        : '—'
+                  }
+                />
                 <InfoRow label={t('customers.detail.nif')} value={customer.nif || '—'} />
                 <InfoRow label={t('customers.detail.address')} value={customer.address || '—'} />
                 <InfoRow label={t('customers.detail.email')} value={customer.email || '—'} />
