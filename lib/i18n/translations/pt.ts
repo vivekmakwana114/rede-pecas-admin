@@ -132,6 +132,7 @@ export const pt: Dictionary = {
     markUnavailableAria: 'Marcar encomenda {number} como stock indisponível',
     reviewItems: 'Rever Itens',
     reviewItemsAria: 'Rever itens da encomenda {number}',
+    waitingOnCustomer: 'A aguardar o cliente',
     verifying: 'A verificar…',
     viewProofAria: 'Ver comprovativo de pagamento da encomenda {number}',
     viewProof: 'Ver Comprovativo',

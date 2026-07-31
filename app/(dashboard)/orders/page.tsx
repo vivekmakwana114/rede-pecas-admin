@@ -61,6 +61,20 @@ export default function OrdersPage() {
   const [range, setRange] = useState<'today' | 'all'>('all');
   const { toast, showToast } = useToast();
 
+  // Orders with a review/confirm action currently in flight — there's no
+  // optimistic update, so without this the action buttons stay fully
+  // clickable (and visually unchanged) until the post-success `fetchOrders`
+  // resolves, inviting a double-submit on a slow connection.
+  const [submittingOrders, setSubmittingOrders] = useState<Set<string>>(new Set());
+  const setSubmitting = (number: string, value: boolean) => {
+    setSubmittingOrders((prev) => {
+      const next = new Set(prev);
+      if (value) next.add(number);
+      else next.delete(number);
+      return next;
+    });
+  };
+
   useEffect(() => {
     dispatch(fetchOrders(range));
     const interval = setInterval(() => dispatch(fetchOrders(range)), 5000);
@@ -83,14 +97,16 @@ export default function OrdersPage() {
    * result toasts, and refreshes the orders list on success.
    */
   const handleApprove = async (number: string) => {
+    setSubmitting(number, true);
     showToast(t('orders.toasts.issuingInvoice'), 'info');
     const result = await dispatch(reviewOrder({ number, approved: true }));
     if (reviewOrder.fulfilled.match(result)) {
       showToast(t('orders.toasts.approveSuccess', { number }), 'success');
-      dispatch(fetchOrders(range));
+      await dispatch(fetchOrders(range));
     } else {
       showToast(t('orders.toasts.approveFailure'), 'error');
     }
+    setSubmitting(number, false);
   };
 
   /**
@@ -115,13 +131,15 @@ export default function OrdersPage() {
    * and refreshing the orders list on success.
    */
   const rejectOrder = async (number: string) => {
+    setSubmitting(number, true);
     const result = await dispatch(reviewOrder({ number, approved: false }));
     if (reviewOrder.fulfilled.match(result)) {
       showToast(t('orders.toasts.rejectSuccess', { number }), 'success');
-      dispatch(fetchOrders(range));
+      await dispatch(fetchOrders(range));
     } else {
       showToast(t('orders.toasts.rejectFailure'), 'error');
     }
+    setSubmitting(number, false);
   };
 
   /**
@@ -146,6 +164,7 @@ export default function OrdersPage() {
    * result toast and refreshing the orders list on success.
    */
   const confirmStock = async (number: string, available: boolean) => {
+    setSubmitting(number, true);
     const result = await dispatch(confirmOrderStock({ number, available }));
     if (confirmOrderStock.fulfilled.match(result)) {
       showToast(
@@ -154,13 +173,14 @@ export default function OrdersPage() {
           : t('orders.toasts.stockUnavailableSuccess', { number }),
         'success',
       );
-      dispatch(fetchOrders(range));
+      await dispatch(fetchOrders(range));
     } else {
       showToast(
         available ? t('orders.toasts.stockConfirmFailure') : t('orders.toasts.stockUnavailableFailure'),
         'error',
       );
     }
+    setSubmitting(number, false);
   };
 
   /**
@@ -201,13 +221,15 @@ export default function OrdersPage() {
    * available/not, alternative-search kicked off for unchecked items.
    */
   const confirmStockItems = async (number: string, items: { itemId: number; available: boolean }[]) => {
+    setSubmitting(number, true);
     const result = await dispatch(confirmOrderStockItems({ number, items }));
     if (confirmOrderStockItems.fulfilled.match(result)) {
       showToast(t('orders.toasts.stockConfirmedSuccess', { number }), 'success');
-      dispatch(fetchOrders(range));
+      await dispatch(fetchOrders(range));
     } else {
       showToast(t('orders.toasts.stockConfirmFailure'), 'error');
     }
+    setSubmitting(number, false);
   };
 
   /**
@@ -318,22 +340,41 @@ export default function OrdersPage() {
         if (row.status !== 'stockConfirmation') {
           return <span className="text-xs text-muted-foreground">{t('orders.qty', { qty: row.quantity })}</span>;
         }
-        const pendingItemsCount = row.items?.filter((item) => item.availabilityStatus === 'pending').length ?? 0;
-        if (pendingItemsCount > 0) {
+        const isSubmitting = submittingOrders.has(row.number);
+        const isBasketOrder = (row.items?.length ?? 0) > 0;
+        if (isBasketOrder) {
+          const pendingItemsCount = row.items!.filter((item) => item.availabilityStatus === 'pending').length;
+          if (pendingItemsCount > 0) {
+            return (
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-2xs text-muted-foreground">
+                  {t('orders.itemsCount', { count: pendingItemsCount })}
+                </span>
+                <button
+                  onClick={() => setStockConfirmationOrder(row)}
+                  disabled={isSubmitting}
+                  aria-label={t('orders.reviewItemsAria', { number: row.number })}
+                  title={t('orders.reviewItems')}
+                  className="flex items-center gap-1 rounded-lg border border-info/30 px-2 py-1 text-2xs font-semibold text-info transition-all hover:bg-info/10 disabled:cursor-not-allowed disabled:opacity-50"
+                >
+                  <ListChecks className="h-3.5 w-3.5" />
+                  {t('orders.reviewItems')}
+                </button>
+              </div>
+            );
+          }
+          // Every item this admin currently knows about already has a
+          // decision (some available, some unavailable) but the order is
+          // still in this bucket — it's paused waiting on the customer to
+          // pick a substitute for whatever was unavailable
+          // (awaiting_alternative_resolution on the backend). There is
+          // nothing for an admin to action right now, so this must NOT fall
+          // through to the legacy single-product Approve/Reject buttons
+          // below — those post a whole-order `{available}` body that's
+          // meaningless for a basket order.
           return (
             <div className="flex flex-col items-center gap-1">
-              <span className="text-2xs text-muted-foreground">
-                {t('orders.itemsCount', { count: pendingItemsCount })}
-              </span>
-              <button
-                onClick={() => setStockConfirmationOrder(row)}
-                aria-label={t('orders.reviewItemsAria', { number: row.number })}
-                title={t('orders.reviewItems')}
-                className="flex items-center gap-1 rounded-lg border border-info/30 px-2 py-1 text-2xs font-semibold text-info transition-all hover:bg-info/10"
-              >
-                <ListChecks className="h-3.5 w-3.5" />
-                {t('orders.reviewItems')}
-              </button>
+              <span className="text-2xs text-muted-foreground">{t('orders.waitingOnCustomer')}</span>
             </div>
           );
         }
@@ -343,17 +384,19 @@ export default function OrdersPage() {
             <div className="flex justify-center gap-2">
               <button
                 onClick={() => handleConfirmStock(row.number, false)}
+                disabled={isSubmitting}
                 aria-label={t('orders.markUnavailableAria', { number: row.number })}
                 title={t('orders.markUnavailable')}
-                className="rounded-lg border border-destructive/30 p-1.5 text-destructive transition-all hover:bg-destructive/10"
+                className="rounded-lg border border-destructive/30 p-1.5 text-destructive transition-all hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <PackageX className="h-4 w-4" />
               </button>
               <button
                 onClick={() => handleConfirmStock(row.number, true)}
+                disabled={isSubmitting}
                 aria-label={t('orders.confirmStockAria', { number: row.number })}
                 title={t('orders.confirmStock')}
-                className="rounded-lg bg-success p-1.5 text-success-foreground shadow-sm transition-all hover:bg-success/90"
+                className="rounded-lg bg-success p-1.5 text-success-foreground shadow-sm transition-all hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 <Check className="h-4 w-4" />
               </button>
@@ -411,17 +454,19 @@ export default function OrdersPage() {
               <>
                 <button
                   onClick={() => handleReject(row.number)}
+                  disabled={submittingOrders.has(row.number)}
                   aria-label={t('orders.rejectAria', { number: row.number })}
                   title={t('orders.reject')}
-                  className="rounded-lg border border-destructive/30 p-1 text-destructive transition-all hover:bg-destructive/10"
+                  className="rounded-lg border border-destructive/30 p-1 text-destructive transition-all hover:bg-destructive/10 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <X className="h-3.5 w-3.5" />
                 </button>
                 <button
                   onClick={() => handleApproveClick(row.number)}
+                  disabled={submittingOrders.has(row.number)}
                   aria-label={t('orders.approveAria', { number: row.number })}
                   title={t('orders.approve')}
-                  className="rounded-lg bg-success p-1 text-success-foreground shadow-sm transition-all hover:bg-success/90"
+                  className="rounded-lg bg-success p-1 text-success-foreground shadow-sm transition-all hover:bg-success/90 disabled:cursor-not-allowed disabled:opacity-50"
                 >
                   <Check className="h-3.5 w-3.5" />
                 </button>
