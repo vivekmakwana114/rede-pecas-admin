@@ -1,5 +1,8 @@
+'use client';
+
 import type { LucideIcon } from 'lucide-react';
 import { AlertCircle, CheckCircle, XCircle } from 'lucide-react';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 interface StatCard {
   label: string;
@@ -9,6 +12,10 @@ interface StatCard {
   valueClassName?: string;
 }
 
+/**
+ * Renders the pending/approved/rejected order counts as a row of three
+ * summary stat cards above the orders grid.
+ */
 export function StatsPanel({
   pendingCount,
   approvedCount,
@@ -18,24 +25,26 @@ export function StatsPanel({
   approvedCount: number;
   rejectedCount: number;
 }) {
+  const { t } = useLocale();
+
   const cards: StatCard[] = [
     {
-      label: 'Pending',
+      label: t('orders.paymentStatus.pending'),
       value: String(pendingCount),
       icon: AlertCircle,
-      iconClassName: 'bg-amber-50 text-amber-600',
+      iconClassName: 'bg-warning/10 text-warning',
     },
     {
-      label: 'Approved',
+      label: t('orders.paymentStatus.approved'),
       value: String(approvedCount),
       icon: CheckCircle,
-      iconClassName: 'bg-emerald-50 text-emerald-600',
+      iconClassName: 'bg-success/10 text-success',
     },
     {
-      label: 'Rejected',
+      label: t('orders.paymentStatus.rejected'),
       value: String(rejectedCount),
       icon: XCircle,
-      iconClassName: 'bg-red-50 text-red-600',
+      iconClassName: 'bg-destructive/10 text-destructive',
     },
   ];
 
@@ -44,11 +53,11 @@ export function StatsPanel({
       {cards.map(({ label, value, icon: Icon, iconClassName, valueClassName }) => (
         <div
           key={label}
-          className="flex items-center justify-between rounded-xl border border-slate-200/80 bg-white p-5 shadow-sm"
+          className="flex items-center justify-between rounded-xl border border-border/80 bg-background p-5 shadow-sm"
         >
           <div>
-            <p className="text-xs font-semibold text-slate-500">{label}</p>
-            <p className={`mt-1 font-bold text-slate-800 ${valueClassName ?? 'text-2xl'}`}>{value}</p>
+            <p className="text-xs font-semibold text-muted-foreground">{label}</p>
+            <p className={`mt-1 font-bold text-foreground ${valueClassName ?? 'text-2xl'}`}>{value}</p>
           </div>
           <div className={`rounded-lg p-3 ${iconClassName}`}>
             <Icon className="h-5 w-5" />

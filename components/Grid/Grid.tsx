@@ -3,19 +3,20 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { ArrowDown, ArrowUp, ChevronLeft, ChevronRight, ChevronsUpDown } from 'lucide-react';
 import type { GridColumn, SortDirection } from './types';
+import { useLocale } from '@/lib/i18n/LocaleContext';
 
 const DEFAULT_PAGE_SIZE = 10;
 
 /**
- * Presentational, domain-agnostic table: sortable columns, client-side
- * pagination, empty state. Callers own filtering/search and pass in the
- * already-narrowed `rows` — this component only sorts and paginates.
+ * Generic paginated, sortable data table. Renders the given columns/rows,
+ * handles client-side sorting and page navigation, and shows an empty-state
+ * message when there are no rows.
  */
 export function Grid<T>({
   columns,
   rows,
   getRowId,
-  emptyMessage = 'No records found.',
+  emptyMessage,
   rowClassName,
   pageSize = DEFAULT_PAGE_SIZE,
 }: {
@@ -23,21 +24,15 @@ export function Grid<T>({
   rows: T[];
   getRowId: (row: T) => string;
   emptyMessage?: ReactNode;
-  /** Extra classes for a row's <tr> — e.g. a status-based background tint. */
   rowClassName?: (row: T) => string | undefined;
   pageSize?: number;
 }) {
+  const { t } = useLocale();
   const [sortKey, setSortKey] = useState<string | null>(null);
   const [sortDir, setSortDir] = useState<SortDirection>('asc');
   const [page, setPage] = useState(1);
   const [prevRows, setPrevRows] = useState(rows);
 
-  // Reset to page 1 whenever the underlying set narrows (search/filter), so a
-  // stricter query never leaves the user stranded on a now-empty page. Adjusted
-  // during render (React's recommended pattern for this) rather than an effect,
-  // so it doesn't cost an extra render pass. Callers are responsible for keeping
-  // `rows` referentially stable across renders that don't actually change data
-  // (e.g. polling) — otherwise this fires on every tick.
   if (rows !== prevRows) {
     setPrevRows(rows);
     setPage(1);
@@ -61,6 +56,10 @@ export function Grid<T>({
 
   const pageRows = sortedRows.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  /**
+   * Updates sort state when a sortable column header is clicked — switches
+   * to the clicked column ascending, or flips direction if already sorted by it.
+   */
   const toggleSort = (column: GridColumn<T>) => {
     if (!column.sortable) return;
     if (sortKey !== column.key) {
@@ -72,16 +71,16 @@ export function Grid<T>({
   };
 
   return (
-    <div className="overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-sm">
+    <div className="overflow-hidden rounded-xl border border-border/80 bg-background shadow-sm">
       <div className="overflow-x-auto">
         <table className="w-full text-left text-sm">
           <thead>
-            <tr className="border-b border-slate-200/80 bg-slate-900/[0.03]">
+            <tr className="border-b border-border/80 bg-foreground/[0.03]">
               {columns.map((column) => (
                 <th
                   key={column.key}
                   scope="col"
-                  className={`px-4 py-3 text-2xs font-bold uppercase tracking-wider text-slate-900 ${
+                  className={`px-4 py-3 text-2xs font-bold tracking-wider text-foreground ${
                     column.align === 'right' ? 'text-right' : column.align === 'center' ? 'text-center' : 'text-left'
                   } ${column.headerClassName ?? ''}`}
                 >
@@ -89,7 +88,7 @@ export function Grid<T>({
                     <button
                       type="button"
                       onClick={() => toggleSort(column)}
-                      className="flex w-full items-center justify-between gap-3 transition-colors hover:text-slate-600"
+                      className="flex w-full items-center justify-between gap-3 transition-colors hover:text-muted-foreground"
                     >
                       <span>{column.header}</span>
                       {sortKey === column.key ? (
@@ -99,7 +98,7 @@ export function Grid<T>({
                           <ArrowDown className="h-3 w-3 shrink-0" />
                         )
                       ) : (
-                        <ChevronsUpDown className="h-3 w-3 shrink-0 text-slate-300" />
+                        <ChevronsUpDown className="h-3 w-3 shrink-0 text-muted-foreground/60" />
                       )}
                     </button>
                   ) : (
@@ -109,16 +108,16 @@ export function Grid<T>({
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-border/60">
             {pageRows.length === 0 ? (
               <tr>
-                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-slate-400">
-                  {emptyMessage}
+                <td colSpan={columns.length} className="px-4 py-12 text-center text-sm text-muted-foreground">
+                  {emptyMessage ?? t('grid.noRecords')}
                 </td>
               </tr>
             ) : (
               pageRows.map((row) => (
-                <tr key={getRowId(row)} className={`transition-colors ${rowClassName?.(row) ?? 'hover:bg-slate-50/60'}`}>
+                <tr key={getRowId(row)} className={`transition-colors ${rowClassName?.(row) ?? 'hover:bg-accent/60'}`}>
                   {columns.map((column) => (
                     <td
                       key={column.key}
@@ -137,30 +136,33 @@ export function Grid<T>({
       </div>
 
       {sortedRows.length > 0 && (
-        <div className="flex items-center justify-between border-t border-slate-200/80 px-4 py-3">
-          <p className="text-xs font-medium text-slate-500">
-            Showing {(currentPage - 1) * pageSize + 1}–{Math.min(currentPage * pageSize, sortedRows.length)} of{' '}
-            {sortedRows.length}
+        <div className="flex items-center justify-between border-t border-border/80 px-4 py-3">
+          <p className="text-xs font-medium text-muted-foreground">
+            {t('grid.showing', {
+              from: (currentPage - 1) * pageSize + 1,
+              to: Math.min(currentPage * pageSize, sortedRows.length),
+              total: sortedRows.length,
+            })}
           </p>
           <div className="flex items-center gap-1">
             <button
               type="button"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={currentPage === 1}
-              className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
-              aria-label="Previous page"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"
+              aria-label={t('grid.previousPage')}
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="px-2 text-xs font-semibold text-slate-600">
-              Page {currentPage} of {pageCount}
+            <span className="px-2 text-xs font-semibold text-muted-foreground">
+              {t('grid.page', { current: currentPage, total: pageCount })}
             </span>
             <button
               type="button"
               onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
               disabled={currentPage === pageCount}
-              className="rounded-lg p-1.5 text-slate-500 transition-colors hover:bg-slate-100 disabled:opacity-30 disabled:hover:bg-transparent"
-              aria-label="Next page"
+              className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-accent disabled:opacity-30 disabled:hover:bg-transparent"
+              aria-label={t('grid.nextPage')}
             >
               <ChevronRight className="h-4 w-4" />
             </button>
