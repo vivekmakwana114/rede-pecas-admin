@@ -23,3 +23,10 @@ export const updateCustomer = (
 export const deleteCustomer = (phone: string) => {
   return api.delete(`/admin/customers/${encodeURIComponent(phone)}`);
 };
+
+/**
+ * Toggles a customer's active status.
+ */
+export const toggleCustomerStatus = (phone: string, active: boolean) => {
+  return api.patch(`/admin/customers/${encodeURIComponent(phone)}/status`, { active });
+};

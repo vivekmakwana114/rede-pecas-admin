@@ -92,7 +92,7 @@ export default function ProfilePage() {
                 <input
                   className={inputClassName}
                   value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                  onChange={(e) => setForm({ ...form, name: e.target.value.replace(/[0-9]/g, '') })}
                   required
                 />
               </div>
@@ -106,6 +106,18 @@ export default function ProfilePage() {
                   value={form.email}
                   onChange={(e) => setForm({ ...form, email: e.target.value })}
                   required
+                />
+              </div>
+              <div>
+                <label className="mb-1 block text-2xs font-semibold text-muted-foreground">
+                  {t('profile.phone')}
+                </label>
+                <input
+                  type="text"
+                  className={`${inputClassName} cursor-not-allowed bg-muted/50 text-muted-foreground`}
+                  value={admin?.phone ?? '—'}
+                  readOnly
+                  disabled
                 />
               </div>
 
