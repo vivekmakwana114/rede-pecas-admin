@@ -290,25 +290,29 @@ export function ImportPanel({ onClose }: { onClose: () => void }) {
           <div>
             <h2 className="text-sm font-bold uppercase tracking-wider text-foreground">{t('inventory.common.importTitle.products')}</h2>
             <ol className="mt-3 flex items-center gap-2">
-              {steps.map((label, index) => (
-                <li key={label} className="flex items-center gap-2">
-                  <span
-                    className={`flex h-5 w-5 items-center justify-center rounded-full text-2xs font-bold ${
-                      index < currentStep
-                        ? 'bg-success text-success-foreground'
-                        : index === currentStep
-                          ? 'bg-primary text-primary-foreground'
-                          : 'bg-muted text-muted-foreground'
-                    }`}
-                  >
-                    {index < currentStep ? <Check className="h-3 w-3" /> : index + 1}
-                  </span>
-                  <span className={`hidden text-xs font-semibold sm:inline ${index <= currentStep ? 'text-foreground' : 'text-muted-foreground'}`}>
-                    {label}
-                  </span>
-                  {index < steps.length - 1 && <span className="h-px w-4 bg-border" />}
-                </li>
-              ))}
+              {steps.map((label, index) => {
+                const isCompleted = index < currentStep || (index === 2 && upload.status === 'succeeded');
+                const isCurrent = index === currentStep && upload.status !== 'succeeded';
+                return (
+                  <li key={label} className="flex items-center gap-2">
+                    <span
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-2xs font-bold ${
+                        isCompleted
+                          ? 'bg-success text-success-foreground'
+                          : isCurrent
+                            ? 'bg-primary text-primary-foreground'
+                            : 'bg-muted text-muted-foreground'
+                      }`}
+                    >
+                      {isCompleted ? <Check className="h-3 w-3" /> : index + 1}
+                    </span>
+                    <span className={`hidden text-xs font-semibold sm:inline ${index <= currentStep || isCompleted ? 'text-foreground' : 'text-muted-foreground'}`}>
+                      {label}
+                    </span>
+                    {index < steps.length - 1 && <span className="h-px w-4 bg-border" />}
+                  </li>
+                );
+              })}
             </ol>
           </div>
           <button

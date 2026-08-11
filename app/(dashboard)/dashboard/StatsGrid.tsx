@@ -13,6 +13,10 @@ interface StatCard {
   valueClassName?: string;
 }
 
+function KwanzaIcon() {
+  return <img src="/kwanza.svg" alt="Kz" className="h-8 w-8 object-contain shrink-0 drop-shadow-sm" />;
+}
+
 /**
  * Grid of summary stat cards (customers, products, orders, revenue) shown
  * at the top of the dashboard.
@@ -63,7 +67,7 @@ export function StatsGrid({
     {
       label: t('dashboard.stats.revenueApproved'),
       value: formatKwanza(approvedRevenue),
-      icon: DollarSign,
+      icon: KwanzaIcon as unknown as LucideIcon,
       iconClassName: 'bg-warning/10 text-warning',
       valueClassName: 'text-xl',
     },
@@ -81,7 +85,7 @@ export function StatsGrid({
             <p className={`mt-1 font-mono font-bold text-foreground ${valueClassName ?? 'text-2xl'}`}>{value}</p>
           </div>
           <div className={`rounded-lg p-3 ${iconClassName}`}>
-            <Icon className="h-5 w-5" />
+            <Icon className="h-7 w-7" />
           </div>
         </div>
       ))}

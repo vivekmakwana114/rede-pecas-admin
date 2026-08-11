@@ -30,6 +30,7 @@ interface RawCustomer {
   first_contact_at: string;
   orders_count: number;
   total_spent: string;
+  active?: boolean;
   vehicles: RawVehicle[];
 }
 
@@ -44,6 +45,7 @@ export interface Customer {
   createdAt: string;
   ordersCount: number;
   totalSpent: number;
+  active: boolean;
   vehicles: Vehicle[];
 }
 
@@ -95,6 +97,7 @@ function toCustomer(raw: RawCustomer): Customer {
     createdAt: raw.first_contact_at,
     ordersCount: raw.orders_count,
     totalSpent: Number(raw.total_spent) || 0,
+    active: raw.active !== false,
     vehicles: (raw.vehicles ?? []).map(toVehicle),
   };
 }
@@ -155,6 +158,21 @@ export const deleteCustomer = createAsyncThunk(
   },
 );
 
+/**
+ * Toggles a customer's active status via the API and updates state.
+ */
+export const toggleCustomerStatus = createAsyncThunk(
+  'customers/toggleCustomerStatus',
+  async ({ phone, active }: { phone: string; active: boolean }, { rejectWithValue }) => {
+    try {
+      await customersService.toggleCustomerStatus(phone, active);
+      return { phone, active };
+    } catch (err) {
+      return rejectWithValue(extractErrorMessage(err, 'Failed to update customer status.'));
+    }
+  },
+);
+
 const customersSlice = createSlice({
   name: 'customers',
   initialState,
@@ -172,6 +190,12 @@ const customersSlice = createSlice({
       .addCase(fetchCustomers.rejected, (state, action) => {
         state.status = 'failed';
         state.error = (action.payload as string) || 'Failed to load customers.';
+      })
+      .addCase(toggleCustomerStatus.fulfilled, (state, action) => {
+        const customer = state.customers.find((c) => c.phone === action.payload.phone);
+        if (customer) {
+          customer.active = action.payload.active;
+        }
       });
   },
 });

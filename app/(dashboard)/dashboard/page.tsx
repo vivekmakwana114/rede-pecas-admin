@@ -55,13 +55,13 @@ export default function DashboardPage() {
           <h1 className="text-xl font-bold text-foreground">{t('dashboard.title')}</h1>
           <p className="mt-0.5 text-sm text-muted-foreground">{t('dashboard.subtitle')}</p>
         </div>
-        <div className="flex items-center gap-1.5 text-xs font-semibold text-success">
+        {/* <div className="flex items-center gap-1.5 text-xs font-semibold text-success">
           <span className="relative flex h-2 w-2">
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-success opacity-75" />
             <span className="relative inline-flex h-2 w-2 rounded-full bg-success" />
           </span>
           {t('dashboard.live')}
-        </div>
+        </div> */}
       </div>
 
       <StatsGrid
