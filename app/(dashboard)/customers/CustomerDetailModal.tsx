@@ -79,7 +79,16 @@ export function CustomerDetailModal({
             <p className="text-2xs font-bold uppercase tracking-wider text-muted-foreground">
               {editing ? t('customers.detail.editTitle') : t('customers.detail.viewTitle')}
             </p>
-            <h2 className="mt-1 truncate text-base font-bold text-foreground">{customer.name}</h2>
+            <div className="mt-1.5 flex items-center gap-2">
+              <h2 className="truncate text-base font-bold text-foreground">{customer.name}</h2>
+              <span
+                className={`inline-flex items-center rounded-full px-2 py-0.5 text-2xs font-semibold ${
+                  customer.active ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'
+                }`}
+              >
+                {customer.active ? t('customers.statusActive') : t('customers.statusInactive')}
+              </span>
+            </div>
             <p className="mt-0.5 font-mono text-xs text-muted-foreground">{customer.phone}</p>
           </div>
           <button

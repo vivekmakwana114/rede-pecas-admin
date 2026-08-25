@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { Eye, Loader2, Pencil, Search, Trash2 } from 'lucide-react';
+import { Eye, Loader2, Pencil, Search, UserCheck, UserX } from 'lucide-react';
 import { formatKwanza } from '@/lib/format';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { deleteCustomer, fetchCustomers } from '@/store/customers/customersSlice';
+import { fetchCustomers, toggleCustomerStatus } from '@/store/customers/customersSlice';
 import { Grid } from '@/components/Grid/Grid';
 import type { GridColumn } from '@/components/Grid/types';
 import { RowActionsMenu } from '@/components/RowActionsMenu';
@@ -38,23 +38,26 @@ export default function CustomersPage() {
     dispatch(fetchCustomers());
   }, [dispatch]);
 
-  /**
-   * Opens a confirmation dialog for deleting the given customer, and on
-   * confirm dispatches the delete and refreshes the customer list.
-   */
-  const handleDelete = (customer: Customer) => {
+  const handleToggleStatus = (customer: Customer, nextActive: boolean) => {
     setConfirmDialog({
-      title: t('customers.deleteTitle', { name: customer.name }),
-      message: t('customers.deleteMessage'),
-      confirmLabel: t('customers.deleteConfirm'),
+      title: nextActive
+        ? t('customers.activateTitle', { name: customer.name })
+        : t('customers.deactivateTitle', { name: customer.name }),
+      message: nextActive ? t('customers.activateMessage') : t('customers.deactivateMessage'),
+      confirmLabel: nextActive ? t('customers.activateConfirm') : t('customers.deactivateConfirm'),
       onConfirm: async () => {
         setConfirmDialog(null);
-        const result = await dispatch(deleteCustomer(customer.phone));
-        if (deleteCustomer.fulfilled.match(result)) {
-          showToast(t('customers.deleteSuccess', { name: customer.name }), 'success');
+        const result = await dispatch(toggleCustomerStatus({ phone: customer.phone, active: nextActive }));
+        if (toggleCustomerStatus.fulfilled.match(result)) {
+          showToast(
+            nextActive
+              ? t('customers.activateSuccess', { name: customer.name })
+              : t('customers.deactivateSuccess', { name: customer.name }),
+            'success',
+          );
           dispatch(fetchCustomers());
         } else {
-          showToast(t('customers.deleteFailure'), 'error');
+          showToast(nextActive ? t('customers.activateFailure') : t('customers.deactivateFailure'), 'error');
         }
       },
     });
@@ -81,6 +84,22 @@ export default function CustomersPage() {
           <p className="font-semibold text-foreground">{row.name}</p>
           <p className="font-mono text-xs text-muted-foreground">{row.phone}</p>
         </div>
+      ),
+    },
+    {
+      key: 'active',
+      header: t('customers.columns.status'),
+      sortable: true,
+      align: 'center',
+      sortValue: (row) => (row.active ? 1 : 0),
+      cell: (row) => (
+        <span
+          className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold ${
+            row.active ? 'bg-success/15 text-success' : 'bg-destructive/15 text-destructive'
+          }`}
+        >
+          {row.active ? t('customers.statusActive') : t('customers.statusInactive')}
+        </span>
       ),
     },
     {
@@ -143,7 +162,9 @@ export default function CustomersPage() {
             actions={[
               { label: t('customers.viewCustomer'), icon: Eye, onClick: () => setDetailCustomer({ customer: row, editing: false }) },
               { label: t('customers.editCustomer'), icon: Pencil, onClick: () => setDetailCustomer({ customer: row, editing: true }) },
-              { label: t('customers.deleteCustomer'), icon: Trash2, onClick: () => handleDelete(row), destructive: true },
+              row.active
+                ? { label: t('customers.deactivateCustomer'), icon: UserX, onClick: () => handleToggleStatus(row, false), destructive: true }
+                : { label: t('customers.activateCustomer'), icon: UserCheck, onClick: () => handleToggleStatus(row, true) },
             ]}
           />
         </div>
